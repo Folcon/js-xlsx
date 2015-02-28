@@ -137,6 +137,14 @@ function resolve_book_type(o/*:WriteFileOpts*/) {
 
 function writeFileSync(wb/*:Workbook*/, filename/*:string*/, opts/*:?WriteFileOpts*/) {
 	var o = opts||{}; o.type = 'file';
+
+  if (typeof module != 'undefined' && typeof 'require' != 'undefined') {
+    style_builder  = new StyleBuilder(opts);
+  }
+  else if  (typeof $ != 'undefined' || typeof 'jQuery' != 'undefined') {
+    style_builder  = new StyleBuilder(opts);
+  }
+
 	o.file = filename;
 	resolve_book_type(o);
 	return writeSync(wb, o);
