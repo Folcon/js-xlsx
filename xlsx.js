@@ -20985,38 +20985,6 @@ function readSync(data, opts) {
 	if(typeof ArrayBuffer !== 'undefined' && data instanceof ArrayBuffer) return readSync(new Uint8Array(data), opts);
 	var d = data, n = [0,0,0,0], str = false;
 	var o = opts||{};
-	if(o.cellStyles) { o.cellNF = true; o.sheetStubs = true; }
-	_ssfopts = {};
-	if(o.dateNF) _ssfopts.dateNF = o.dateNF;
-	if(!o.type) o.type = (has_buf && Buffer.isBuffer(data)) ? "buffer" : "base64";
-	if(o.type == "file") { o.type = has_buf ? "buffer" : "binary"; d = read_binary(data); }
-	if(o.type == "string") { str = true; o.type = "binary"; o.codepage = 65001; d = bstrify(data); }
-	if(o.type == 'array' && typeof Uint8Array !== 'undefined' && data instanceof Uint8Array && typeof ArrayBuffer !== 'undefined') {
-		// $FlowIgnore
-		var ab=new ArrayBuffer(3), vu=new Uint8Array(ab); vu.foo="bar";
-		// $FlowIgnore
-		if(!vu.foo) {o=dup(o); o.type='array'; return readSync(ab2a(d), o);}
-	}
-	switch((n = firstbyte(d, o))[0]) {
-		case 0xD0: if(n[1] === 0xCF && n[2] === 0x11 && n[3] === 0xE0 && n[4] === 0xA1 && n[5] === 0xB1 && n[6] === 0x1A && n[7] === 0xE1) return read_cfb(CFB.read(d, o), o); break;
-		case 0x09: if(n[1] <= 0x04) return parse_xlscfb(d, o); break;
-		case 0x3C: return parse_xlml(d, o);
-		case 0x49: if(n[1] === 0x44) return read_wb_ID(d, o); break;
-		case 0x54: if(n[1] === 0x41 && n[2] === 0x42 && n[3] === 0x4C) return DIF.to_workbook(d, o); break;
-		case 0x50: return (n[1] === 0x4B && n[2] < 0x09 && n[3] < 0x09) ? read_zip(d, o) : read_prn(data, d, o, str);
-		case 0xEF: return n[3] === 0x3C ? parse_xlml(d, o) : read_prn(data, d, o, str);
-		case 0xFF: if(n[1] === 0xFE) { return read_utf16(d, o); } break;
-		case 0x00: if(n[1] === 0x00 && n[2] >= 0x02 && n[3] === 0x00) return WK_.to_workbook(d, o); break;
-		case 0x03: case 0x83: case 0x8B: case 0x8C: return DBF.to_workbook(d, o);
-		case 0x7B: if(n[1] === 0x5C && n[2] === 0x72 && n[3] === 0x74) return RTF.to_workbook(d, o); break;
-		case 0x0A: case 0x0D: case 0x20: return read_plaintext_raw(d, o);
-	}
-	if(DBF.versions.indexOf(n[0]) > -1 && n[2] <= 12 && n[3] <= 31) return DBF.to_workbook(d, o);
-	return read_prn(data, d, o, str);
-}
-
-function readFileSync(filename, opts) {
-	var o = opts||{}; o.type = 'file';
 
   if (typeof module != 'undefined' && typeof 'require' != 'undefined') {
     style_builder  = new StyleBuilder(opts);
@@ -21024,6 +20992,21 @@ function readFileSync(filename, opts) {
   else if  (typeof $ != 'undefined' || typeof 'jQuery' != 'undefined') {
     style_builder  = new StyleBuilder(opts);
   }
+
+  var z = write_zip(wb, o);
+	switch(o.type) {
+		case "base64": return z.generate({type:"base64"});
+		case "binary": return z.generate({type:"string"});
+		case "buffer": return z.generate({type:"nodebuffer"});
+		case "file": return _fs.writeFileSync(o.file, z.generate({type:"nodebuffer"}));
+		default: throw new Error("Unrecognized type " + o.type);
+	}
+	if(DBF.versions.indexOf(n[0]) > -1 && n[2] <= 12 && n[3] <= 31) return DBF.to_workbook(d, o);
+	return read_prn(data, d, o, str);
+}
+
+function readFileSync(filename, opts) {
+	var o = opts||{}; o.type = 'file';
 
 	o.file = filename;
 	switch(o.file.substr(-5).toLowerCase()) {
@@ -21546,10 +21529,12 @@ if ((typeof 'module' != 'undefined'  && typeof require != 'undefined') || (typeo
       createElement = function(str) { return cheerio(cheerio(str, null, null, {xmlMode: true})); };
     }
     else if (typeof jQuery !== 'undefined' || typeof $ !== 'undefined') {
-      createElement = function(str) { return $(str); }
+      createElement = function(str) {
+        return $($.parseXML(str).documentElement);
+      } //http://stackoverflow.com/a/11719466
     }
     else {
-      createElement = function() { }
+      createElement = function() { } // this class should never have been instantiated
     }
 
 
@@ -21628,7 +21613,7 @@ if ((typeof 'module' != 'undefined'  && typeof require != 'undefined') || (typeo
           this.$styles.find = function(q) { return this(q)}
         }
         else {
-          this.$styles = $(baseXml);
+          this.$styles = $($.parseXML(baseXml).documentElement);
         }
 
 
@@ -21880,7 +21865,10 @@ if ((typeof 'module' != 'undefined'  && typeof require != 'undefined') || (typeo
           this.$styles.find('numFmts').remove();
         }
         if (this.$styles.xml) { return this.$styles.xml(); }
-        else { return baseXmlprefix + this.$styles.html(); }
+        else {
+          var s = new XMLSerializer(); //http://stackoverflow.com/a/5744268
+          return baseXmlprefix + s.serializeToString(this.$styles[0]);;
+        }
       }
     }.initialize(options||{});
   }
