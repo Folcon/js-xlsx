@@ -15951,10 +15951,10 @@ for(var cma = c; cma <= cc; ++cma) {
 			}
 			break;
 
-		case 'style' /*case 'Style'*/:
-			if(Rn[1]==='/') process_style_xlml(styles, stag, opts);
-			else stag = xlml_parsexmltag(Rn[0]);
-			break;
+    if (cell.s && (cell.s == +cell.s)) { return cell.s}  // if its already an integer index, let it be
+    if (!cell.s) cell.s = {}
+    if (cell.z) cell.s.numFmt = cell.z;
+    cell.s = style_builder.addStyle(cell.s);
 
 		case 'numberformat' /*case 'NumberFormat'*/:
 			stag.nf = unescapexml(xlml_parsexmltag(Rn[0]).Format || "General");
@@ -21852,7 +21852,8 @@ if ((typeof 'module' != 'undefined'  && typeof require != 'undefined') || (typeo
           return numFmt; // we're matching an integer against some known code
         }
 
-        var $numFmt = XmlNode(numFmt)
+
+        var $numFmt = XmlNode('numFmt')
             .attr('numFmtId', (++customNumFmtId))
             .attr('formatCode', numFmt);
 
@@ -21861,7 +21862,7 @@ if ((typeof 'module' != 'undefined'  && typeof require != 'undefined') || (typeo
 
         var count = this.$numFmts.children().length;
         this.$numFmts.attr('count', count);
-        return customNumFmtId;
+        return customNumFmtId ;
       },
 
       _addFill: function (attributes) {
