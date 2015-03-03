@@ -12,13 +12,8 @@ function write_cfb_ctr(cfb/*:CFBContainer*/, o/*:WriteOpts*/)/*:any*/ {
 /*:: declare var encrypt_agile:any; */
 function write_zip_type(wb/*:Workbook*/, opts/*:?WriteOpts*/)/*:any*/ {
 	var o = opts||{};
-
-  if (typeof module != 'undefined' && typeof 'require' != 'undefined') {
-    style_builder  = new StyleBuilder(opts);
-  }
-  else if  (typeof $ != 'undefined' || typeof 'jQuery' != 'undefined') {
-    style_builder  = new StyleBuilder(opts);
-  }
+  console.log("Creating stylebuilder")
+  style_builder  = new StyleBuilder(opts);
 
   var z = write_zip(wb, o);
 	switch(o.type) {
