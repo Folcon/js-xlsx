@@ -15802,155 +15802,9 @@ function xlml_normalize(d) {
 	throw new Error("Bad input format: expected Buffer or string");
 }
 
-/* TODO: Everything */
-/* UOS uses CJK in tags */
-var xlmlregex = /<(\/?)([^\s?><!\/:]*:|)([^\s?<>:\/]+)(?:[\s?:\/][^>]*)?>/mg;
-//var xlmlregex = /<(\/?)([a-z0-9]*:|)(\w+)[^>]*>/mg;
-function parse_xlml_xml(d, _opts) {
-	var opts = _opts || {};
-	make_ssf(SSF);
-	var str = debom(xlml_normalize(d));
-	if(opts.type == 'binary' || opts.type == 'array' || opts.type == 'base64') {
-		if(typeof cptable !== 'undefined') str = cptable.utils.decode(65001, char_codes(str));
-		else str = utf8read(str);
-	}
-	var opening = str.slice(0, 1024).toLowerCase(), ishtml = false;
-	if(opening.indexOf("<?xml") == -1) ["html", "table", "head", "meta", "script", "style", "div"].forEach(function(tag) { if(opening.indexOf("<" + tag) >= 0) ishtml = true; });
-	if(ishtml) return HTML_.to_workbook(str, opts);
-	var Rn;
-	var state = [], tmp;
-	if(DENSE != null && opts.dense == null) opts.dense = DENSE;
-	var sheets = {}, sheetnames = [], cursheet = (opts.dense ? [] : {}), sheetname = "";
-	var table = {}, cell = ({}), row = {};// eslint-disable-line no-unused-vars
-	var dtag = xlml_parsexmltag('<Data ss:Type="String">'), didx = 0;
-	var c = 0, r = 0;
-	var refguess = {s: {r:2000000, c:2000000}, e: {r:0, c:0} };
-	var styles = {}, stag = {};
-	var ss = "", fidx = 0;
-	var merges = [];
-	var Props = {}, Custprops = {}, pidx = 0, cp = [];
-	var comments = [], comment = ({});
-	var cstys = [], csty, seencol = false;
-	var arrayf = [];
-	var rowinfo = [], rowobj = {}, cc = 0, rr = 0;
-	var Workbook = ({ Sheets:[], WBProps:{date1904:false} }), wsprops = {};
-	xlmlregex.lastIndex = 0;
-	str = str.replace(/<!--([\s\S]*?)-->/mg,"");
-	var raw_Rn3 = "";
-	while((Rn = xlmlregex.exec(str))) switch((Rn[3] = (raw_Rn3 = Rn[3]).toLowerCase())) {
-		case 'data' /*case 'Data'*/:
-			if(raw_Rn3 == "data") {
-				if(Rn[1]==='/'){if((tmp=state.pop())[0]!==Rn[3]) throw new Error("Bad state: "+tmp.join("|"));}
-				else if(Rn[0].charAt(Rn[0].length-2) !== '/') state.push([Rn[3], true]);
-				break;
-			}
-			if(state[state.length-1][1]) break;
-			if(Rn[1]==='/') parse_xlml_data(str.slice(didx, Rn.index), ss, dtag, state[state.length-1][0]==/*"Comment"*/"comment"?comment:cell, {c:c,r:r}, styles, cstys[c], row, arrayf, opts);
-			else { ss = ""; dtag = xlml_parsexmltag(Rn[0]); didx = Rn.index + Rn[0].length; }
-			break;
-		case 'cell' /*case 'Cell'*/:
-			if(Rn[1]==='/'){
-				if(comments.length > 0) cell.c = comments;
-				if((!opts.sheetRows || opts.sheetRows > r) && cell.v !== undefined) {
-					if(opts.dense) {
-						if(!cursheet[r]) cursheet[r] = [];
-						cursheet[r][c] = cell;
-					} else cursheet[encode_col(c) + encode_row(r)] = cell;
-				}
-				if(cell.HRef) {
-					cell.l = ({Target:cell.HRef});
-					if(cell.HRefScreenTip) cell.l.Tooltip = cell.HRefScreenTip;
-					delete cell.HRef; delete cell.HRefScreenTip;
-				}
-				if(cell.MergeAcross || cell.MergeDown) {
-					cc = c + (parseInt(cell.MergeAcross,10)|0);
-					rr = r + (parseInt(cell.MergeDown,10)|0);
-					merges.push({s:{c:c,r:r},e:{c:cc,r:rr}});
-				}
-				if(!opts.sheetStubs) { if(cell.MergeAcross) c = cc + 1; else ++c; }
-				else if(cell.MergeAcross || cell.MergeDown) {
-for(var cma = c; cma <= cc; ++cma) {
-						for(var cmd = r; cmd <= rr; ++cmd) {
-							if(cma > c || cmd > r) {
-								if(opts.dense) {
-									if(!cursheet[cmd]) cursheet[cmd] = [];
-									cursheet[cmd][cma] = {t:'z'};
-								} else cursheet[encode_col(cma) + encode_row(cmd)] = {t:'z'};
-							}
-						}
-					}
-					c = cc + 1;
-				}
-				else ++c;
-			} else {
-				cell = xlml_parsexmltagobj(Rn[0]);
-				if(cell.Index) c = +cell.Index - 1;
-				if(c < refguess.s.c) refguess.s.c = c;
-				if(c > refguess.e.c) refguess.e.c = c;
-				if(Rn[0].slice(-2) === "/>") ++c;
-				comments = [];
-			}
-			break;
-		case 'row' /*case 'Row'*/:
-			if(Rn[1]==='/' || Rn[0].slice(-2) === "/>") {
-				if(r < refguess.s.r) refguess.s.r = r;
-				if(r > refguess.e.r) refguess.e.r = r;
-				if(Rn[0].slice(-2) === "/>") {
-					row = xlml_parsexmltag(Rn[0]);
-					if(row.Index) r = +row.Index - 1;
-				}
-				c = 0; ++r;
-			} else {
-				row = xlml_parsexmltag(Rn[0]);
-				if(row.Index) r = +row.Index - 1;
-				rowobj = {};
-				if(row.AutoFitHeight == "0" || row.Height) {
-					rowobj.hpx = parseInt(row.Height, 10); rowobj.hpt = px2pt(rowobj.hpx);
-					rowinfo[r] = rowobj;
-				}
-				if(row.Hidden == "1") { rowobj.hidden = true; rowinfo[r] = rowobj; }
-			}
-			break;
-		case 'worksheet' /*case 'Worksheet'*/: /* TODO: read range from FullRows/FullColumns */
-			if(Rn[1]==='/'){
-				if((tmp=state.pop())[0]!==Rn[3]) throw new Error("Bad state: "+tmp.join("|"));
-				sheetnames.push(sheetname);
-				if(refguess.s.r <= refguess.e.r && refguess.s.c <= refguess.e.c) {
-					cursheet["!ref"] = encode_range(refguess);
-					if(opts.sheetRows && opts.sheetRows <= refguess.e.r) {
-						cursheet["!fullref"] = cursheet["!ref"];
-						refguess.e.r = opts.sheetRows - 1;
-						cursheet["!ref"] = encode_range(refguess);
-					}
-				}
-				if(merges.length) cursheet["!merges"] = merges;
-				if(cstys.length > 0) cursheet["!cols"] = cstys;
-				if(rowinfo.length > 0) cursheet["!rows"] = rowinfo;
-				sheets[sheetname] = cursheet;
-			} else {
-				refguess = {s: {r:2000000, c:2000000}, e: {r:0, c:0} };
-				r = c = 0;
-				state.push([Rn[3], false]);
-				tmp = xlml_parsexmltag(Rn[0]);
-				sheetname = unescapexml(tmp.Name);
-				cursheet = (opts.dense ? [] : {});
-				merges = [];
-				arrayf = [];
-				rowinfo = [];
-				wsprops = {name:sheetname, Hidden:0};
-				Workbook.Sheets.push(wsprops);
-			}
-			break;
-		case 'table' /*case 'Table'*/:
-			if(Rn[1]==='/'){if((tmp=state.pop())[0]!==Rn[3]) throw new Error("Bad state: "+tmp.join("|"));}
-			else if(Rn[0].slice(-2) == "/>") break;
-			else {
-				table = xlml_parsexmltag(Rn[0]);
-				state.push([Rn[3], false]);
-				cstys = []; seencol = false;
-			}
-			break;
-
+function get_cell_style(styles, cell, opts) {
+  if (typeof style_builder != 'undefined') {
+    if (/^\d+$/.exec(cell.s)) { return cell.s}  // if its already an integer index, let it be
     if (cell.s && (cell.s == +cell.s)) { return cell.s}  // if its already an integer index, let it be
     if (!cell.s) cell.s = {}
     if (cell.z) cell.s.numFmt = cell.z;
@@ -20963,12 +20817,11 @@ function read_plaintext_raw(data, o) {
 	return read_plaintext(str, o);
 }
 
-function read_utf16(data, o) {
-	var d = data;
-	if(o.type == 'base64') d = Base64.decode(d);
-	d = cptable.utils.decode(1200, d.slice(2), 'str');
-	o.type = "binary";
-	return read_plaintext(d, o);
+function readFileSync(data, opts) {
+	var o = opts||{}; o.type = 'file'
+  var wb = readSync(data, o);
+  wb.FILENAME = data;
+	return wb;
 }
 
 function bstrify(data) {
@@ -20985,7 +20838,6 @@ function readSync(data, opts) {
 	if(typeof ArrayBuffer !== 'undefined' && data instanceof ArrayBuffer) return readSync(new Uint8Array(data), opts);
 	var d = data, n = [0,0,0,0], str = false;
 	var o = opts||{};
-  console.log("Creating stylebuilder")
   style_builder  = new StyleBuilder(opts);
 
   var z = write_zip(wb, o);
@@ -21570,8 +21422,14 @@ var XmlNode = (function () {
     return this;
   }
 
-  XmlNode.prototype.escapeString = function(str) {
-    return str.replace(/\"/g,'&quot;') // TODO Extend with four other codes
+  var APOS = "'"; QUOTE = '"'
+  var ESCAPED_QUOTE = {  }
+  ESCAPED_QUOTE[QUOTE] = '&quot;'
+  ESCAPED_QUOTE[APOS] = '&apos;'
+
+  XmlNode.prototype.escapeAttributeValue = function(att_value) {
+    return '"' + att_value.replace(/\"/g,'&quot;') + '"';// TODO Extend with four other codes
+
   }
 
   XmlNode.prototype.toXml = function (node) {
@@ -21580,7 +21438,7 @@ var XmlNode = (function () {
     xml += '<' + node.tagName;
     if (node._attributes) {
       for (var key in node._attributes) {
-        xml += ' ' + key + '="' + this.escapeString(''+node._attributes[key]) + '"'
+        xml += ' ' + key + '=' + this.escapeAttributeValue(''+node._attributes[key]) + ''
       }
     }
     if (node._children && node._children.length > 0) {
@@ -21845,7 +21703,7 @@ if ((typeof 'module' != 'undefined'  && typeof require != 'undefined') || (typeo
           }
         }
 
-        if (numFmt == +numFmt) {
+        if (/^[0-9]+$/.exec(numFmt)) {
           return numFmt; // we're matching an integer against some known code
         }
 

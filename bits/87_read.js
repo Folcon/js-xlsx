@@ -47,12 +47,11 @@ function read_plaintext_raw(data/*:RawData*/, o/*:ParseOpts*/)/*:Workbook*/ {
 	return read_plaintext(str, o);
 }
 
-function read_utf16(data/*:RawData*/, o/*:ParseOpts*/)/*:Workbook*/ {
-	var d = data;
-	if(o.type == 'base64') d = Base64.decode(d);
-	d = cptable.utils.decode(1200, d.slice(2), 'str');
-	o.type = "binary";
-	return read_plaintext(d, o);
+function readFileSync(data, opts) {
+	var o = opts||{}; o.type = 'file'
+  var wb = readSync(data, o);
+  wb.FILENAME = data;
+	return wb;
 }
 
 function bstrify(data/*:string*/)/*:string*/ {
