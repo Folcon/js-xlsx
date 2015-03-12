@@ -216,7 +216,9 @@ var artifax = [
 	"abwq1", "abx57", "abx97", "abwke2", "abwb2b"
 ].map(function(x) { return paths[x]; });
 
-function parsetest(x/*:string*/, wb/*:Workbook*/, full/*:boolean*/, ext/*:?string*/) {
+
+
+function parsetest(x, wb, full, ext) {
 	ext = (ext ? " [" + ext + "]": "");
 	if(!full && ext) return;
 	describe(x + ext + ' should have all bits', function() {
@@ -279,7 +281,7 @@ function parsetest(x/*:string*/, wb/*:Workbook*/, full/*:boolean*/, ext/*:?strin
         var csv = fixcsv(X.utils.make_csv(wb.Sheets[ws]));
         var result = (file == csv);
         if (!result) {  //  try again parsing the file ourselves
-          // somehow these workbooks are getting here having been parsed without {cellNF: true}
+          // somehow these workbooks are getting here having been parsec without {cellNF: true}
           // so re-read them with {cellNF:true} and all works just great.
           // THus these CSV tests seem to fail due to issue with test framework rather than XLSX itself
           var wb1 = X.readFile(wb.FILENAME, {cellStyles:true, cellNF:true});
@@ -347,7 +349,6 @@ var wbtable = {};
 				var wb = wbtable[dir + x];
 				if(!wb) wb = X.readFile(dir + x, opts);
         var FILENAME = wb.FILENAME;
-        console.error(JSON.stringify(opts))
         wb = X.read(X.write(wb, {type:"buffer", bookType:ext.replace(/\./,"")}), {WTF:opts.WTF, cellNF: true})
         wb.FILENAME = FILENAME;
 
