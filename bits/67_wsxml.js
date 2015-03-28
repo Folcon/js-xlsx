@@ -424,26 +424,19 @@ return function parse_ws_xml_data(sdata/*:string*/, s, opts, guess/*:Range*/, th
 					if(!opts || opts.cellText !== false) p.w = p.v;
 					p.v = RBErr[p.v]; break;
 			}
-			/* formatting */
-			fmtid = fillid = 0;
-			cf = null;
-			if(do_format && tag.s !== undefined) {
-				cf = styles.CellXf[tag.s];
-				if(cf != null) {
-					if(cf.numFmtId != null) fmtid = cf.numFmtId;
-					if(opts.cellStyles) {
-						if(cf.fillId != null) fillid = cf.fillId;
-					}
-				}
-			}
-			safe_format(p, fmtid, fillid, opts, themes, styles);
-			if(opts.cellDates && do_format && p.t == 'n' && SSF.is_date(SSF._table[fmtid])) { p.t = 'd'; p.v = numdate(p.v); }
-			if(dense) {
-				var _r = decode_cell(tag.r);
-				if(!s[_r.r]) s[_r.r] = [];
-				s[_r.r][_r.c] = p;
-			} else s[tag.r] = p;
-		}
+            /* formatting */
+            fmtid = fillid = 0;
+            if(do_format && tag.s !== undefined) {
+              cf = styles.CellXf[tag.s];
+              if (opts.cellStyles) p.s = get_cell_style_csf(cf)
+              if(cf != null) {
+                if(cf.numFmtId != null) fmtid = cf.numFmtId;
+                if(opts.cellStyles && cf.fillId != null) fillid = cf.fillId;
+              }
+            }
+            safe_format(p, fmtid, fillid, opts);
+            s[tag.r] = p;
+      }
 	}
 	if(rows.length > 0) s['!rows'] = rows;
 }; })();

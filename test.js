@@ -417,13 +417,14 @@ describe('parse options', function() {
 			});
 		});
 		it('should generate formulae by default', function() {
-			FSTPaths.forEach(function(p) {
-				var wb = X.read(fs.readFileSync(p), {type:TYPE});
-				var found = false;
-				wb.SheetNames.forEach(function(s) {
-					each_cell(wb.Sheets[s], function(cell) {
-						if(typeof cell.f !== 'undefined') return (found = true);
-					});
+			var wb = X.readFile(paths.fstb);
+			var found = false;
+			wb.SheetNames.forEach(function(s) {
+				var ws = wb.Sheets[s];
+        if (!ws) { console.log("wb not defined"); console.log(paths.fstb); console.log(s); console.log(wb.SheetNames); }
+				Object.keys(ws).forEach(function(addr) {
+					if(addr[0] === "!" || !ws.hasOwnProperty(addr)) return;
+					if(typeof ws[addr].f !== 'undefined') return found = true;
 				});
 				assert(found);
 			});
@@ -462,14 +463,16 @@ describe('parse options', function() {
 				});
 			});
 		});
-		it('should not generate number formats by default', function() {
-			NFPaths.forEach(function(p) {
-				var wb = X.read(fs.readFileSync(p), {type:TYPE});
-				wb.SheetNames.forEach(function(s) {
-					var ws = wb.Sheets[s];
-					each_cell(ws, function(cell) {
-						assert(typeof cell.z === 'undefined');
-					});
+		it('should not generate cell styles by default', function() {
+			var wb = X.readFile(paths.css1);
+			wb.SheetNames.forEach(function(s) {
+				var ws = wb.Sheets[s];
+				Object.keys(ws).forEach(function(addr) {
+					if(addr[0] === "!" || !ws.hasOwnProperty(addr)) return;
+          if (typeof ws[addr].s !== 'undefined') {
+            console.log(paths.css1);
+          }
+					assert(typeof ws[addr].s === 'undefined');
 				});
 			});
 		});
@@ -827,11 +830,12 @@ var stykeys = [
 	"bgColor.rgb"
 ];
 function diffsty(ws, r1,r2) {
-	var c1 = get_cell(ws,r1).s, c2 = get_cell(ws,r2).s;
+	var c1 = ws[r1].s.fill, c2 = ws[r2].s.fill;
 	stykeys.forEach(function(m) {
 		var c = -1;
 		if(styexc.indexOf(r1+"|"+r2+"|"+m) > -1) c = 1;
 		else if(styexc.indexOf(r2+"|"+r1+"|"+m) > -1) c = 1;
+
 		deepcmp(c1,c2,m,r1+","+r2,c);
 	});
 }
@@ -1141,297 +1145,72 @@ describe('parse features', function() {
 		});
 	});
 
-	describe('cellDates', function() {
-		var fmts = [
-			/* desc     path        sheet     cell   formatted */
-			['XLSX', paths.dtxlsx, 'Sheet1',  'B5',  '2/14/14'],
-			['XLSB', paths.dtxlsb, 'Sheet1',  'B5',  '2/14/14'],
-			['XLS',  paths.dtxls,  'Sheet1',  'B5',  '2/14/14'],
-			['XLML', paths.dtxml,  'Sheet1',  'B5',  '2/14/14'],
-			['XLSM', paths.nfxlsx, 'Implied', 'B13', '18-Oct-33']
-		];
-		it('should not generate date cells by default', function() { fmts.forEach(function(f) {
-			var wb, ws;
-			wb = X.read(fs.readFileSync(f[1]), {type:TYPE});
-			ws = wb.Sheets[f[2]];
-			assert.equal(get_cell(ws, f[3]).w, f[4]);
-			assert.equal(get_cell(ws, f[3]).t, 'n');
-		}); });
-		it('should generate date cells if cellDates is true', function() { fmts.forEach(function(f) {
-			var wb, ws;
-			wb = X.read(fs.readFileSync(f[1]), {type:TYPE, cellDates:true});
-			ws = wb.Sheets[f[2]];
-			assert.equal(get_cell(ws, f[3]).w, f[4]);
-			assert.equal(get_cell(ws, f[3]).t, 'd');
-		}); });
-	});
-
-	describe('defined names', function() {[
-		/* desc     path        cmnt */
-		['xlsx', paths.dnsxlsx,  true],
-		['xlsb', paths.dnsxlsb,  true],
-		['xls',  paths.dnsxls,   true],
-		['xlml', paths.dnsxml,  false]
-	].forEach(function(m) { it(m[0], function() {
-		var wb = X.read(fs.readFileSync(m[1]), {type:TYPE});
-		var names = wb.Workbook.Names;
-		for(var i = 0; i < names.length; ++i) if(names[i].Name == "SheetJS") break;
-		assert(i < names.length, "Missing name");
-		assert.equal(names[i].Sheet, null);
-		assert.equal(names[i].Ref, "Sheet1!$A$1");
-		if(m[2]) assert.equal(names[i].Comment, "defined names just suck  excel formulae are bad  MS should feel bad");
-
-		for(i = 0; i < names.length; ++i) if(names[i].Name == "SHEETjs") break;
-		assert(i < names.length, "Missing name");
-		assert.equal(names[i].Sheet, 0);
-		assert.equal(names[i].Ref, "Sheet1!$A$2");
-	}); }); });
-
-	describe('defined names unicode', function() {[
-		/* desc     path      */
-		['xlsx', paths.dnuxlsx],
-		['xlsb', paths.dnuxlsb],
-		['ods',  paths.dnuods ],
-		['xls',  paths.dnuxls ],
-		['xlml', paths.dnuxml ]
-	].forEach(function(m) { it(m[0], function() {
-		var wb = X.read(fs.readFileSync(m[1]), {type:TYPE});
-		[
-			"NoContainsJapanese",
-			"\u65E5\u672C\u8a9e\u306e\u307f",
-			"sheet\u65e5\u672c\u8a9e",
-			"\u65e5\u672c\u8a9esheet",
-			"sheet\u65e5\u672c\u8a9esheet"
-		].forEach(function(n, i) { assert.equal(wb.SheetNames[i], n); });
-		[
-			["name\u65e5\u672c\u8a9e", "sheet\u65e5\u672c\u8a9e!$A$1"],
-			["name\u65e5\u672c\u8a9ename", "sheet\u65e5\u672c\u8a9esheet!$B$2"],
-			["NoContainsJapaneseName", "\u65e5\u672c\u8a9e\u306e\u307f!$A$1"],
-			["sheet\u65e5\u672c\u8a9e", "sheet\u65e5\u672c\u8a9e!$A$1"],
-			["\u65e5\u672c\u8a9e", "NoContainsJapanese!$A$1"],
-			["\u65e5\u672c\u8a9ename", "\u65e5\u672c\u8a9esheet!$I$2"]
-		].forEach(function(n) {
-			var DN = null;
-			var arr = wb.Workbook.Names;
-			for(var j = 0; j < arr.length; ++j) if(arr[j].Name == n[0]) DN = arr[j];
-			assert(DN);
-			// $FlowIgnore
-			assert.equal(DN.Ref, n[1]);
-		});
-	}); }); });
-
-	describe('auto filter', function() {[
-		['xlsx', paths.afxlsx],
-		['xlsb', paths.afxlsb],
-		['xls',  paths.afxls],
-		['xlml', paths.afxml],
-		['ods',  paths.afods]
-	].forEach(function(m) { it(m[0], function() {
-		var wb = X.read(fs.readFileSync(m[1]), {type:TYPE});
-		assert(!wb.Sheets[wb.SheetNames[0]]['!autofilter']);
-		for(var i = 1; i < wb.SheetNames.length; ++i) {
-			assert(wb.Sheets[wb.SheetNames[i]]['!autofilter']);
-			assert.equal(wb.Sheets[wb.SheetNames[i]]['!autofilter'].ref,"A1:E22");
-		}
-	}); }); });
-
-	describe('HTML', function() {
-		var ws, wb;
-		var bef = (function() {
-			ws = X.utils.aoa_to_sheet([
-				["a","b","c"],
-				["&","<",">","\n"]
-			]);
-			wb = {SheetNames:["Sheet1"],Sheets:{Sheet1:ws}};
-		});
-		if(typeof before != 'undefined') before(bef);
-		else it('before', bef);
-		['xlsx'].forEach(function(m) { it(m, function() {
-			var wb2 = X.read(X.write(wb, {bookType:m, type:TYPE}),{type:TYPE, cellHTML:true});
-			assert.equal(get_cell(wb2.Sheets.Sheet1, "A2").h, "&amp;");
-			assert.equal(get_cell(wb2.Sheets.Sheet1, "B2").h, "&lt;");
-			assert.equal(get_cell(wb2.Sheets.Sheet1, "C2").h, "&gt;");
-			assert.equal(get_cell(wb2.Sheets.Sheet1, "D2").h, "<br/>");
-		}); });
-	});
-
-	describe('page margins', function() {
-		var wbs=[];
-		var bef = (function() {
-			if(!fs.existsSync(paths.pmxls)) return;
-			wbs = PMPaths.map(function(p) { return X.read(fs.readFileSync(p), {type:TYPE, WTF:1}); });
-		});
-		if(typeof before != 'undefined') before(bef);
-		else it('before', bef);
-		[
-			/* Sheet Name     Margins: left   right  top bottom head foot */
-			["Normal",                 [0.70, 0.70, 0.75, 0.75, 0.30, 0.30]],
-			["Wide",                   [1.00, 1.00, 1.00, 1.00, 0.50, 0.50]],
-			["Narrow",                 [0.25, 0.25, 0.75, 0.75, 0.30, 0.30]],
-			["Custom 1 Inch Centered", [1.00, 1.00, 1.00, 1.00, 0.30, 0.30]],
-			["1 Inch HF",              [0.70, 0.70, 0.75, 0.75, 1.00, 1.00]]
-		].forEach(function(t) { it('should parse ' + t[0] + ' margin', function() { wbs.forEach(function(wb) {
-			check_margin(wb.Sheets[t[0]]["!margins"], t[1]);
-		}); }); });
-	});
-
-	describe('should correctly handle styles', function() {
-		var wsxls, wsxlsx, rn, rn2;
-		var bef = (function() {
-			wsxls=X.read(fs.readFileSync(paths.cssxls), {type:TYPE,cellStyles:true,WTF:1}).Sheets.Sheet1;
-			wsxlsx=X.read(fs.readFileSync(paths.cssxlsx), {type:TYPE,cellStyles:true,WTF:1}).Sheets.Sheet1;
-			rn = function(range) {
-				var r = X.utils.decode_range(range);
-				var out = [];
-				for(var R = r.s.r; R <= r.e.r; ++R) for(var C = r.s.c; C <= r.e.c; ++C)
-					out.push(X.utils.encode_cell({c:C,r:R}));
-				return out;
-			};
-			rn2 = function(r) { return [].concat.apply([], r.split(",").map(rn)); };
-		});
-		if(typeof before != 'undefined') before(bef);
-		else it('before', bef);
-		var ranges = [
-			'A1:D1,F1:G1', 'A2:D2,F2:G2', /* rows */
-			'A3:A10', 'B3:B10', 'E1:E10', 'F6:F8', /* cols */
-			'H1:J4', 'H10' /* blocks */
-		];
-		/*eslint-disable */
-		var exp/*:Array<any>*/ = [
-			{ patternType: 'darkHorizontal',
-			  fgColor: { theme: 9, raw_rgb: 'F79646' },
-			  bgColor: { theme: 5, raw_rgb: 'C0504D' } },
-			{ patternType: 'darkUp',
-			  fgColor: { theme: 3, raw_rgb: '1F497D' },
-			  bgColor: { theme: 7, raw_rgb: '8064A2' } },
-			{ patternType: 'darkGray',
-			  fgColor: { theme: 3, raw_rgb: '1F497D' },
-			  bgColor: { theme: 1, raw_rgb: '000000' } },
-			{ patternType: 'lightGray',
-			  fgColor: { theme: 6, raw_rgb: '9BBB59' },
-			  bgColor: { theme: 2, raw_rgb: 'EEECE1' } },
-			{ patternType: 'lightDown',
-			  fgColor: { theme: 4, raw_rgb: '4F81BD' },
-			  bgColor: { theme: 7, raw_rgb: '8064A2' } },
-			{ patternType: 'lightGrid',
-			  fgColor: { theme: 6, raw_rgb: '9BBB59' },
-			  bgColor: { theme: 9, raw_rgb: 'F79646' } },
-			{ patternType: 'lightGrid',
-			  fgColor: { theme: 4, raw_rgb: '4F81BD' },
-			  bgColor: { theme: 2, raw_rgb: 'EEECE1' } },
-			{ patternType: 'lightVertical',
-			  fgColor: { theme: 3, raw_rgb: '1F497D' },
-			  bgColor: { theme: 7, raw_rgb: '8064A2' } }
-		];
-		/*eslint-enable */
-		ranges.forEach(function(rng) {
-			it('XLS  | ' + rng,function(){cmparr(rn2(rng).map(function(x){ return get_cell(wsxls,x).s; }));});
-			it('XLSX | ' + rng,function(){cmparr(rn2(rng).map(function(x){ return get_cell(wsxlsx,x).s; }));});
-		});
-		it('different styles', function() {
-			for(var i = 0; i != ranges.length-1; ++i) {
-				for(var j = i+1; j != ranges.length; ++j) {
-					diffsty(wsxlsx, rn2(ranges[i])[0], rn2(ranges[j])[0]);
-					/* TODO: XLS */
-					//diffsty(wsxls, rn2(ranges[i])[0], rn2(ranges[j])[0]);
-				}
-			}
-		});
-		it('correct styles', function() {
-			//var stylesxls = ranges.map(function(r) { return rn2(r)[0]; }).map(function(r) { return get_cell(wsxls,r).s; });
-			var stylesxlsx = ranges.map(function(r) { return rn2(r)[0]; }).map(function(r) { return get_cell(wsxlsx,r).s; });
-			exp.forEach(function(e, i) {
-				[
-					"fgColor.theme","fgColor.raw_rgb",
-					"bgColor.theme","bgColor.raw_rgb",
-					"patternType"
-				].forEach(function(k) {
-					deepcmp(e, stylesxlsx[i], k, i + ":" + k, 0);
-					/* TODO: XLS */
-					//deepcmp(e, stylesxls[i], k, i + ":" + k, 0);
-				});
-			});
-		});
-	});
-});
-
-describe('write features', function() {
-	describe('props', function() {
-		describe('core', function() {
-			var ws;
-			var baseprops = {
-				Category: "Newspaper",
-				ContentStatus: "Published",
-				Keywords: "☃",
-				LastAuthor: "Perry White",
-				LastPrinted: "1978-12-15",
-				RevNumber: 6969,
-				AppVersion: 69,
-				Author: "Lois Lane",
-				Comments: "Needs work",
-				Identifier: "1d",
-				Language: "English",
-				Subject: "Superman",
-				Title: "Man of Steel"
-			};
-			var bef = (function() {
-				X = require(modp);
-				ws = X.utils.aoa_to_sheet([["a","b","c"],[1,2,3]]);
-			});
-			if(typeof before != 'undefined') before(bef);
-			else it('before', bef);
-			['xlml', 'xlsx', 'xlsb'].forEach(function(w) { it(w, function() {
-				var wb = {
-					Props: {},
-					SheetNames: ["Sheet1"],
-					Sheets: {Sheet1: ws}
-				};
-				Object.keys(baseprops).forEach(function(k) { wb.Props[k] = baseprops[k]; });
-				var wb2 = X.read(X.write(wb, {bookType:w, type:TYPE}), {type:TYPE});
-				Object.keys(baseprops).forEach(function(k) { assert.equal(baseprops[k], wb2.Props[k]); });
-				var wb3 = X.read(X.write(wb2, {bookType:w, type:TYPE, Props: {Author:"SheetJS"}}), {type:TYPE});
-				assert.equal("SheetJS", wb3.Props.Author);
-			}); });
-		});
-	});
-	describe('HTML', function() {
-		it('should use `h` value when present', function() {
-			var sheet = X.utils.aoa_to_sheet([["abc"]]);
-			get_cell(sheet, "A1").h = "<b>abc</b>";
-			var wb = {SheetNames:["Sheet1"], Sheets:{Sheet1:sheet}};
-			var str = X.write(wb, {bookType:"html", type:"binary"});
-			assert(str.indexOf("<b>abc</b>") > 0);
-		});
-	});
-	describe('sheet range limits', function() { [
-		["biff2", "IV16384"],
-		["biff5", "IV16384"],
-		["biff8", "IV65536"],
-		["xlsx", "XFD1048576"],
-		["xlsb", "XFD1048576"]
-	].forEach(function(r) { it(r[0], function() {
-		var C = X.utils.decode_cell(r[1]);
-		var wopts = {bookType:r[0], type:'binary', WTF:1};
-		var wb = { SheetNames: ["Sheet1"], Sheets: { Sheet1: {} } };
-
-		wb.Sheets.Sheet1['!ref'] =  "A1:" + X.utils.encode_cell({r:0, c:C.c});
-		X.write(wb, wopts);
-		wb.Sheets.Sheet1['!ref'] =  "A" + X.utils.encode_row(C.r - 5) + ":" + X.utils.encode_cell({r:C.r, c:0});
-		X.write(wb, wopts);
-
-		wb.Sheets.Sheet1['!ref'] =  "A1:" + X.utils.encode_cell({r:0, c:C.c+1});
-		assert.throws(function() { X.write(wb, wopts); });
-		wb.Sheets.Sheet1['!ref'] =  "A" + X.utils.encode_row(C.r - 5) + ":" + X.utils.encode_cell({r:C.r+1, c:0});
-		assert.throws(function() { X.write(wb, wopts); });
-	}); }); });
-	it('single worksheet formats', function() {
-		var wb = X.utils.book_new();
-		X.utils.book_append_sheet(wb, X.utils.aoa_to_sheet([[1,2],[3,4]]), "Sheet1");
-		X.utils.book_append_sheet(wb, X.utils.aoa_to_sheet([[5,6],[7,8]]), "Sheet2");
-		assert.equal(X.write(wb, {type:"string", bookType:"csv", sheet:"Sheet1"}), "1,2\n3,4\n");
-		assert.equal(X.write(wb, {type:"string", bookType:"csv", sheet:"Sheet2"}), "5,6\n7,8\n");
-		assert.throws(function() { X.write(wb, {type:"string", bookType:"csv", sheet:"Sheet3"}); });
-	});
+//	describe('should correctly handle styles', function() {
+//		var ws, rn, rn2;
+//		before(function() {
+//			ws=X.readFile(paths.css1, {cellStyles:true,WTF:1}).Sheets.Sheet1;
+//			rn = function(range) {
+//				var r = X.utils.decode_range(range);
+//				var out = [];
+//				for(var R = r.s.r; R <= r.e.r; ++R) for(var C = r.s.c; C <= r.e.c; ++C)
+//					out.push(X.utils.encode_cell({c:C,r:R}));
+//				return out;
+//			};
+//			rn2 = function(r) { return [].concat.apply([], r.split(",").map(rn)); };
+//		});
+//		var ranges = [
+//			'A1:D1,F1:G1', 'A2:D2,F2:G2', /* rows */
+//			'A3:A10', 'B3:B10', 'E1:E10', 'F6:F8', /* cols */
+//			'H1:J4', 'H10' /* blocks */
+//		];
+//		var exp = [
+//  { patternType: 'darkHorizontal',
+//    fgColor: { theme: 9, raw_rgb: 'FFF79646' },
+//    bgColor: { theme: 5, raw_rgb: 'FFC0504D' } },
+//  { patternType: 'darkUp',
+//    fgColor: { theme: 3, raw_rgb: 'FFEEECE1' },
+//    bgColor: { theme: 7, raw_rgb: 'FF8064A2' } },
+//  { patternType: 'darkGray',
+//    fgColor: { theme: 3, raw_rgb: 'FFEEECE1' },
+//    bgColor: { theme: 1, raw_rgb: 'FFFFFFFF' } },
+//  { patternType: 'lightGray',
+//    fgColor: { theme: 6, raw_rgb: 'FF9BBB59' },
+//    bgColor: { theme: 2, raw_rgb: 'FF1F497D' } },
+//  { patternType: 'lightDown',
+//    fgColor: { theme: 4, raw_rgb: 'FF4F81BD' },
+//    bgColor: { theme: 7, raw_rgb: 'FF8064A2' } },
+//  { patternType: 'lightGrid',
+//    fgColor: { theme: 6, raw_rgb: 'FF9BBB59' },
+//    bgColor: { theme: 9, raw_rgb: 'FFF79646' } },
+//  { patternType: 'lightGrid',
+//    fgColor: { theme: 4, raw_rgb: 'FF4F81BD' },
+//    bgColor: { theme: 2, raw_rgb: 'FF1F497D' } },
+//  { patternType: 'lightVertical',
+//    fgColor: { theme: 3, raw_rgb: 'FFEEECE1' },
+//    bgColor: { theme: 7, raw_rgb: 'FF8064A2' } }
+//    ];
+//		ranges.forEach(function(rng) {
+//			it(rng,function(){cmparr(rn2(rng).map(function(x){ return ws[x].s; }));});
+//		});
+//		it('different styles', function() {
+//			for(var i = 0; i != ranges.length-1; ++i) {
+//				for(var j = i+1; j != ranges.length; ++j) {
+//					diffsty(ws, rn2(ranges[i])[0], rn2(ranges[j])[0]);
+//				}
+//			}
+//		});
+//		it('correct styles', function() {
+//			var styles = ranges.map(function(r) { return rn2(r)[0]}).map(function(r) { return ws[r].s});
+//      console.log(styles);
+//			for(var i = 0; i != exp.length; ++i) {
+//				[
+//					"fgColor.theme","fgColor.raw_rgb",
+//					"bgColor.theme","bgColor.raw_rgb",
+//					"patternType"
+//				].forEach(function(k) { console.log(k); console.log(styles[i]); deepcmp(exp[i], styles[i].fill, k, i + ":"+k); });
+//			}
+//		});
+//	});
 });
 
 function seq(end/*:number*/, start/*:?number*/)/*:Array<number>*/ {
