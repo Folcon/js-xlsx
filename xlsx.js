@@ -15842,16 +15842,24 @@ function get_cell_style(styles, cell, opts) {
   if (typeof style_builder != 'undefined') {
     if (/^\d+$/.exec(cell.s)) { return cell.s}  // if its already an integer index, let it be
     if (cell.s && (cell.s == +cell.s)) { return cell.s}  // if its already an integer index, let it be
-    if (!cell.s) cell.s = {}
-    if (cell.z) cell.s.numFmt = cell.z;
-    cell.s = style_builder.addStyle(cell.s);
-
-		case 'numberformat' /*case 'NumberFormat'*/:
-			stag.nf = unescapexml(xlml_parsexmltag(Rn[0]).Format || "General");
-			if(XLMLFormatMap[stag.nf]) stag.nf = XLMLFormatMap[stag.nf];
-			for(var ssfidx = 0; ssfidx != 0x188; ++ssfidx) if(SSF._table[ssfidx] == stag.nf) break;
-			if(ssfidx == 0x188) for(ssfidx = 0x39; ssfidx != 0x188; ++ssfidx) if(SSF._table[ssfidx] == null) { SSF.load(stag.nf, ssfidx); break; }
-			break;
+    var s = cell.s || {};
+    if (cell.z) s.numFmt = cell.z;
+    return style_builder.addStyle(s);
+  }
+  else {
+    var z = opts.revssf[cell.z != null ? cell.z : "General"];
+    for(var i = 0, len = styles.length; i != len; ++i) if(styles[i].numFmtId === z) return i;
+    styles[len] = {
+      numFmtId:z,
+      fontId:0,
+      fillId:0,
+      borderId:0,
+      xfId:0,
+      applyNumberFormat:1
+    };
+    return len;
+  }
+}
 
 function get_cell_style_csf(cellXf) {
 
@@ -16746,7 +16754,9 @@ function write_ws_xlml_cell(cell, ref, ws, opts, idx, wb, addr){
             fmtid = fillid = 0;
             if(do_format && tag.s !== undefined) {
               cf = styles.CellXf[tag.s];
-              if (opts.cellStyles) p.s = get_cell_style_csf(cf)
+              if (opts.cellStyles) {
+                p.s = get_cell_style_csf(cf)
+              }
               if(cf != null) {
                 if(cf.numFmtId != null) fmtid = cf.numFmtId;
                 if(opts.cellStyles && cf.fillId != null) fillid = cf.fillId;
@@ -21850,7 +21860,7 @@ if ((typeof 'module' != 'undefined'  && typeof require != 'undefined') || (typeo
         return count - 1;
       },
 
-      _addNumFmt: function (numFmt) {
+        _addNumFmt: function (numFmt) {
         if (!numFmt) { return 0; }
 
         if (typeof numFmt == 'string') {
@@ -21863,6 +21873,12 @@ if ((typeof 'module' != 'undefined'  && typeof require != 'undefined') || (typeo
         if (/^[0-9]+$/.exec(numFmt)) {
           return numFmt; // we're matching an integer against some known code
         }
+        numFmt = numFmt
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
 
 
         var $numFmt = XmlNode('numFmt')

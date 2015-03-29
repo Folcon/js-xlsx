@@ -428,7 +428,9 @@ return function parse_ws_xml_data(sdata/*:string*/, s, opts, guess/*:Range*/, th
             fmtid = fillid = 0;
             if(do_format && tag.s !== undefined) {
               cf = styles.CellXf[tag.s];
-              if (opts.cellStyles) p.s = get_cell_style_csf(cf)
+              if (opts.cellStyles) {
+                p.s = get_cell_style_csf(cf)
+              }
               if(cf != null) {
                 if(cf.numFmtId != null) fmtid = cf.numFmtId;
                 if(opts.cellStyles && cf.fillId != null) fillid = cf.fillId;
