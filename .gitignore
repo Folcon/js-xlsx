@@ -19,9 +19,3 @@ tmp
 *.htm
 *.html
 *.sheetjs
-
-lab/
-test_files
-example.js
-example2.js
-.idea

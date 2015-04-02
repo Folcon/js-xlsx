@@ -308,7 +308,7 @@ describe('parse options', function() {
 		});
 		it('should generate cell styles when requested', function() {
 			/* TODO: XLS / XLML */
-			[paths.cssxlsx /*,paths.cssxls, paths.cssxml*/].forEach(function(p) {
+			[paths.cssxlsx, /*paths.cssxls, paths.cssxml*/].forEach(function(p) {
 			var wb = X.readFile(p, {cellStyles:true});
 			var found = false;
 			wb.SheetNames.forEach(function(s) {

@@ -1,18 +1,7 @@
 # xlsx-style
 
-Parser and writer for various spreadsheet formats.  Pure-JS cleanroom implementation from official specifications and related documents.
-
-# About this fork
-**NOTE:** [This project](https://github.com/SheetJS/js-xlsx/tree/beta) is a fork of the original (and awesome) [SheetJS/xlsx](https://github.com/SheetJS/js-xlsx) project.
-It is extended to enable cell formats to be read from and written to .xlsx workbooks.
-The intent is to provide a temporary means of using these features in practice, and ultimately to merge this into the primary project.
-Report any issues to https://github.com/protobi/js-xlsx/issues.
-
-For those contributing to this fork:
-* `master` is the main branch, which follows the original repo to enable a future pull request.
-* `beta` branch is published to npm and bower to make this fork available for use.
-
-# Supported formats
+Parser and writer for various spreadsheet formats.  Pure-JS cleanroom
+implementation from official specifications and related documents.
 
 Supported read formats:
 
@@ -35,7 +24,7 @@ Source: <http://git.io/xlsx>
 
 ## Installation
 
-With [npm](https://www.npmjs.org/package/xlsx-style):
+With [npm](https://www.npmjs.org/package/xlsx):
 
 ```sh
 npm install xlsx-style --save
@@ -184,6 +173,24 @@ The full object format is described later in this README.
 
 This example extracts the value stored in cell A1 from the first worksheet:
 
+```
+var first_sheet_name = workbook.SheetNames[0];
+var address_of_cell = 'A1';
+
+/* Get worksheet */
+var worksheet = workbook.Sheets[first_sheet_name];
+
+/* Find desired cell */
+var desired_cell = worksheet[address_of_cell];
+
+/* Get the value */
+var desired_value = desired_cell.v;
+```
+
+This example iterates through every nonempty of every sheet and dumps values:
+
+This example extracts the value stored in cell A1 from the first worksheet:
+
 ```js
 var first_sheet_name = workbook.SheetNames[0];
 var address_of_cell = 'A1';
@@ -202,7 +209,6 @@ This example iterates through every nonempty of every sheet and dumps values:
 
 ```js
 var sheet_name_list = workbook.SheetNames;
-
 sheet_name_list.forEach(function(y) { /* iterate through sheets */
   var worksheet = workbook.Sheets[y];
   for (z in worksheet) {
@@ -454,15 +460,8 @@ The following properties are currently used when generating an XLSX file, but no
 
 `wb.Sheets[sheetname]` returns an object representing the worksheet.
 
-`wb.Props` is an object storing the standard properties.  The following properties are currently used when
-generating an XLSX file, but not yet parsed:
-    - `title`
-    - `subject`
-    - `description`
-    - `keywords`
-    - `creator`
-
-`wb.Custprops` stores custom properties.  Since the XLS standard properties deviate from the XLSX
+`wb.Props` is an object storing the standard properties.  `wb.Custprops` stores
+custom properties.  Since the XLS standard properties deviate from the XLSX
 standard, XLS parsing stores core properties in both places.  .
 
 

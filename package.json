@@ -1,8 +1,8 @@
 {
 	"name": "xlsx",
-	"version": "0.8.20",
+	"version": "0.8.0",
 	"author": "sheetjs",
-	"description": "Excel (XLSB/XLSX/XLSM/XLS/XML) and ODS spreadsheet parser and writer (extended to enable read/write of cell formats with xlsx files)",
+	"description": "Excel (XLSB/XLSX/XLSM/XLS/XML) and ODS spreadsheet parser and writer",
 	"keywords": [ "excel", "xls", "xlsx", "xlsb", "xlsm", "ods", "office", "spreadsheet" ],
 	"bin": {
 		"xlsx": "./bin/xlsx.njs"
