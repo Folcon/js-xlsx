@@ -9047,7 +9047,8 @@ function parse_fills(t, styles, themes, opts) {
 
 
         if (y.theme && themes.themeElements && themes.themeElements.clrScheme) {
-          fill.bgColor.raw_rgb = rgb_tint(themes.themeElements.clrScheme[fill.bgColor.theme].rgb, fill.fgColor.tint || 0);
+          fill.bgColor.rgb = rgb_tint(themes.themeElements.clrScheme[fill.bgColor.theme].rgb, 0) ; //fill.fgColor.tint || 0);
+          if (opts.WTF) fill.bgColor.raw_rgb = fill.bgColor.rgb;
         }
         /* Excel uses ARGB strings */
         if (y.rgb) fill.bgColor.rgb = y.rgb;//.substring(y.rgb.length - 6);
@@ -9063,7 +9064,8 @@ function parse_fills(t, styles, themes, opts) {
         if (y.tint) fill.fgColor.tint = parseFloat(y.tint);
 
         if (y.theme && themes.themeElements && themes.themeElements.clrScheme) {
-          fill.fgColor.raw_rgb = rgb_tint(themes.themeElements.clrScheme[fill.fgColor.theme].rgb, fill.fgColor.tint || 0);
+          fill.fgColor.rgb = rgb_tint(themes.themeElements.clrScheme[fill.fgColor.theme].rgb, 0); //fill.fgColor.tint || 0);
+          if (opts.WTF) fill.fgColor.raw_rgb = fill.fgColor.rgb;
         }
 
         /* Excel uses ARGB strings */
@@ -9157,7 +9159,7 @@ function parse_fonts(t, styles, themes, opts) {
         if (y.theme) font.color.theme = y.theme;
         if (y.tint) font.color.tint = y.tint;
         if (y.theme && themes.themeElements && themes.themeElements.clrScheme) {
-          font.color.raw_rgb = rgb_tint(themes.themeElements.clrScheme[font.color.theme].rgb, font.color.tint || 0);
+          font.color.rgb = rgb_tint(themes.themeElements.clrScheme[font.color.theme].rgb, font.color.tint || 0);
         }
         if (y.rgb) font.color.rgb = y.rgb;
         break;
@@ -9236,7 +9238,7 @@ function parse_numFmts(t, styles, opts) {
         sub_border.color = {};
         if (y.theme) sub_border.color.theme = y.theme;
         if (y.theme && themes.themeElements && themes.themeElements.clrScheme) {
-          sub_border.color.raw_rgb = rgb_tint(themes.themeElements.clrScheme[sub_border.color.theme].rgb, sub_border.color.tint || 0);
+          sub_border.color.rgb = rgb_tint(themes.themeElements.clrScheme[sub_border.color.theme].rgb, sub_border.color.tint || 0);
         }
 
         if (y.tint) sub_border.color.tint = y.tint;
