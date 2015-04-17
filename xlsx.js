@@ -9038,36 +9038,40 @@ function parse_fills(t, styles, themes, opts) {
 			case '<gradientFill':
 			case '</gradientFill>': styles.Fills.push(fill); fill = {}; break;
 
-			/* 18.8.32 patternFill CT_PatternFill */
-			case '<patternFill': case '<patternFill>':
-				if(y.patternType) fill.patternType = y.patternType;
-				break;
-			case '<patternFill/>': case '</patternFill>': break;
+      /* 18.8.3 bgColor CT_Color */
+      case '<bgColor':
+        if (!fill.bgColor) fill.bgColor = {};
+        if (y.indexed) fill.bgColor.indexed = parseInt(y.indexed, 10);
+        if (y.theme) fill.bgColor.theme = parseInt(y.theme, 10);
+        if (y.tint) fill.bgColor.tint = parseFloat(y.tint);
 
-			/* 18.8.3 bgColor CT_Color */
-			case '<bgColor':
-				if(!fill.bgColor) fill.bgColor = {};
-				if(y.indexed) fill.bgColor.indexed = parseInt(y.indexed, 10);
-				if(y.theme) fill.bgColor.theme = parseInt(y.theme, 10);
-				if(y.tint) fill.bgColor.tint = parseFloat(y.tint);
-				/* Excel uses ARGB strings */
-				if(y.rgb) fill.bgColor.rgb = y.rgb.slice(-6);
-				break;
-			case '<bgColor/>': case '</bgColor>': break;
 
-			/* 18.8.19 fgColor CT_Color */
-			case '<fgColor':
-				if(!fill.fgColor) fill.fgColor = {};
-				if(y.theme) fill.fgColor.theme = parseInt(y.theme, 10);
-				if(y.tint) fill.fgColor.tint = parseFloat(y.tint);
-				/* Excel uses ARGB strings */
-				if(y.rgb != null) fill.fgColor.rgb = y.rgb.slice(-6);
-				break;
-			case '<fgColor/>': case '</fgColor>': break;
+        if (y.theme && themes.themeElements && themes.themeElements.clrScheme) {
+          fill.bgColor.raw_rgb = rgb_tint(themes.themeElements.clrScheme[fill.bgColor.theme].rgb, fill.fgColor.tint || 0);
+        }
+        /* Excel uses ARGB strings */
+        if (y.rgb) fill.bgColor.rgb = y.rgb;//.substring(y.rgb.length - 6);
+        break;
+      case '<bgColor/>':
+      case '</bgColor>':
+        break;
 
-			/* 18.8.38 stop CT_GradientStop */
-			case '<stop': case '<stop/>': break;
-			case '</stop>': break;
+      /* 18.8.19 fgColor CT_Color */
+      case '<fgColor':
+        if (!fill.fgColor) fill.fgColor = {};
+        if (y.theme) fill.fgColor.theme = parseInt(y.theme, 10);
+        if (y.tint) fill.fgColor.tint = parseFloat(y.tint);
+
+        if (y.theme && themes.themeElements && themes.themeElements.clrScheme) {
+          fill.fgColor.raw_rgb = rgb_tint(themes.themeElements.clrScheme[fill.fgColor.theme].rgb, fill.fgColor.tint || 0);
+        }
+
+        /* Excel uses ARGB strings */
+        if (y.rgb) fill.fgColor.rgb = y.rgb;//.substring(y.rgb.length - 6);
+        break;
+      case '<fgColor/>':
+      case '</fgColor>':
+        break;
 
 			/* 18.8.? color CT_Color */
 			case '<color': case '<color/>': break;
@@ -9148,60 +9152,20 @@ function parse_fonts(t, styles, themes, opts) {
 			case '<sz': if(y.val) font.sz = +y.val; break;
 			case '<sz/>': case '</sz>': break;
 
-			/* 18.4.14 vertAlign CT_VerticalAlignFontProperty */
-			case '<vertAlign': if(y.val) font.vertAlign = y.val; break;
-			case '<vertAlign/>': case '</vertAlign>': break;
-
-			/* 18.8.18 family CT_FontFamily */
-			case '<family': if(y.val) font.family = parseInt(y.val,10); break;
-			case '<family/>': case '</family>': break;
-
-			/* 18.8.35 scheme CT_FontScheme */
-			case '<scheme': if(y.val) font.scheme = y.val; break;
-			case '<scheme/>': case '</scheme>': break;
-
-			/* 18.4.1 charset CT_IntProperty */
-			case '<charset':
-				if(y.val == '1') break;
-				y.codepage = CS2CP[parseInt(y.val, 10)];
-				break;
-
-			/* 18.?.? color CT_Color */
-			case '<color':
-				if(!font.color) font.color = {};
-				if(y.auto) font.color.auto = parsexmlbool(y.auto);
-
-				if(y.rgb) font.color.rgb = y.rgb.slice(-6);
-				else if(y.indexed) {
-					font.color.index = parseInt(y.indexed, 10);
-					var icv = XLSIcv[font.color.index];
-					if(font.color.index == 81) icv = XLSIcv[1];
-					if(!icv) throw new Error(x);
-					font.color.rgb = icv[0].toString(16) + icv[1].toString(16) + icv[2].toString(16);
-				} else if(y.theme) {
-					font.color.theme = parseInt(y.theme, 10);
-					if(y.tint) font.color.tint = parseFloat(y.tint);
-					if(y.theme && themes.themeElements && themes.themeElements.clrScheme) {
-						font.color.rgb = rgb_tint(themes.themeElements.clrScheme[font.color.theme].rgb, font.color.tint || 0);
-					}
-				}
-
-				break;
-			case '<color/>': case '</color>': break;
-
-			/* note: sometimes mc:AlternateContent appears bare */
-			case '<AlternateContent': pass = true; break;
-			case '</AlternateContent>': pass = false; break;
-
-			/* 18.2.10 extLst CT_ExtensionList ? */
-			case '<extLst': case '<extLst>': case '</extLst>': break;
-			case '<ext': pass = true; break;
-			case '</ext>': pass = false; break;
-			default: if(opts && opts.WTF) {
-				if(!pass) throw new Error('unrecognized ' + y[0] + ' in fonts');
-			}
-		}
-	});
+      case '<color':
+        if (!font.color) font.color = {};
+        if (y.theme) font.color.theme = y.theme;
+        if (y.tint) font.color.tint = y.tint;
+        if (y.theme && themes.themeElements && themes.themeElements.clrScheme) {
+          font.color.raw_rgb = rgb_tint(themes.themeElements.clrScheme[font.color.theme].rgb, font.color.tint || 0);
+        }
+        if (y.rgb) font.color.rgb = y.rgb;
+        break;
+      case '<color/>':
+      case '</color>':
+        break;
+    }
+  });
 }
 
 /* 18.8.31 numFmts CT_NumFmts */
@@ -9232,15 +9196,105 @@ function parse_numFmts(t, styles, opts) {
 	}
 }
 
-function write_numFmts(NF) {
-	var o = ["<numFmts>"];
-	[[5,8],[23,26],[41,44],[/*63*/50,/*66],[164,*/392]].forEach(function(r) {
-		for(var i = r[0]; i <= r[1]; ++i) if(NF[i] != null) o[o.length] = (writextag('numFmt',null,{numFmtId:i,formatCode:escapexml(NF[i])}));
-	});
-	if(o.length === 1) return "";
-	o[o.length] = ("</numFmts>");
-	o[0] = writextag('numFmts', null, { count:o.length-2 }).replace("/>", ">");
-	return o.join("");
+        break;
+        break;
+      case '</border>':
+        break;
+
+      case '<left':
+        sub_border = border.left = {};
+        if (y.style) {
+          sub_border.style = y.style;
+        }
+        break;
+      case '<right':
+        sub_border = border.right = {};
+        if (y.style) {
+          sub_border.style = y.style;
+        }
+        break;
+      case '<top':
+        sub_border = border.top = {};
+        if (y.style) {
+          sub_border.style = y.style;
+        }
+        break;
+      case '<bottom':
+        sub_border = border.bottom = {};
+        if (y.style) {
+          sub_border.style = y.style;
+        }
+        break;
+      case '<diagonal':
+        sub_border = border.diagonal = {};
+        if (y.style) {
+          sub_border.style = y.style;
+        }
+        break;
+
+      case '<color':
+        sub_border.color = {};
+        if (y.theme) sub_border.color.theme = y.theme;
+        if (y.theme && themes.themeElements && themes.themeElements.clrScheme) {
+          sub_border.color.raw_rgb = rgb_tint(themes.themeElements.clrScheme[sub_border.color.theme].rgb, sub_border.color.tint || 0);
+        }
+
+        if (y.tint) sub_border.color.tint = y.tint;
+        if (y.rgb) sub_border.color.rgb = y.rgb;
+        if (y.auto) sub_border.color.auto = y.auto;
+        break;
+      case '<name/>':
+      case '</name>':
+        break;
+      default:
+        break;
+    }
+  });
+
+}
+
+/* 18.8.31 numFmts CT_NumFmts */
+function parse_numFmts(t, opts) {
+  styles.NumberFmt = [];
+  var k = keys(SSF._table);
+  for (var i = 0; i < k.length; ++i) styles.NumberFmt[k[i]] = SSF._table[k[i]];
+  var m = t[0].match(tagregex);
+  for (i = 0; i < m.length; ++i) {
+    var y = parsexmltag(m[i]);
+    switch (y[0]) {
+      case '<numFmts':
+      case '</numFmts>':
+      case '<numFmts/>':
+      case '<numFmts>':
+        break;
+      case '<numFmt':
+      {
+        var f = unescapexml(utf8read(y.formatCode)), j = parseInt(y.numFmtId, 10);
+        styles.NumberFmt[j] = f;
+        if (j > 0) SSF.load(f, j);
+      }
+        break;
+      default:
+        if (opts.WTF) throw 'unrecognized ' + y[0] + ' in numFmts';
+    }
+  }
+}
+
+function write_numFmts(NF, opts) {
+  var o = ["<numFmts>"];
+  [
+    [5, 8],
+    [23, 26],
+    [41, 44],
+    [63, 66],
+    [164, 392]
+  ].forEach(function (r) {
+    for (var i = r[0]; i <= r[1]; ++i) if (NF[i] !== undefined) o[o.length] = (writextag('numFmt', null, {numFmtId: i, formatCode: escapexml(NF[i])}));
+  });
+  if (o.length === 1) return "";
+  o[o.length] = ("</numFmts>");
+  o[0] = writextag('numFmts', null, { count: o.length - 2 }).replace("/>", ">");
+  return o.join("");
 }
 
 /* 18.8.10 cellXfs CT_CellXfs */
@@ -20675,9 +20729,13 @@ function parse_zip(zip, opts) {
 		strs = [];
 		if(dir.sst) try { strs=parse_sst(getzipdata(zip, strip_front_slash(dir.sst)), dir.sst, opts); } catch(e) { if(opts.WTF) throw e; }
 
-		if(opts.cellStyles && dir.themes.length) themes = parse_theme(getzipstr(zip, dir.themes[0].replace(/^\//,''), true)||"",dir.themes[0], opts);
+    // parse themes before styles so that we can reliably decode theme/tint into rgb when parsing styles
+    themes = {};
+    if(opts.cellStyles && dir.themes.length) themes = parse_theme(getzipdata(zip, dir.themes[0].replace(/^\//,''), true),dir.themes[0], opts);
 
-		if(dir.style) styles = parse_sty(getzipdata(zip, strip_front_slash(dir.style)), dir.style, themes, opts);
+    styles = {};
+		if(dir.style) styles = parse_sty(getzipdata(zip, dir.style.replace(/^\//,'')),dir.style, opts);
+
 	}
 
 	/*var externbooks = */dir.links.map(function(link) {
