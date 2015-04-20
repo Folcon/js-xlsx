@@ -169,18 +169,24 @@ In the browser, just add a script tag:
 
 </details>
 
+```sh
+npm install xlsx --save
+```
 
 With [npm](https://www.npmjs.org/package/xlsx):
 
-```bash
-$ npm install xlsx
+```html
+<script lang="javascript" src="dist/xlsx.core.min.js"></script>
 ```
 
 With [bower](http://bower.io/search/?q=js-xlsx):
 
-```bash
-$ bower install js-xlsx
+```sh
+bower install js-xlsx
 ```
+
+CDNjs automatically pulls the latest version and makes all versions available at
+<http://cdnjs.com/libraries/xlsx>
 
 ### JS Ecosystem Demos
 
@@ -233,8 +239,10 @@ circumstances, so they do not ship with the core.  For browser use, they must
 be included directly:
 
 ```html
-<!-- international support from js-codepage -->
+<!-- international support from https://github.com/sheetjs/js-codepage -->
 <script src="dist/cpexcel.js"></script>
+<!-- ODS support -->
+<script src="dist/ods.js"></script>
 ```
 
 An appropriate version for each dependency is included in the dist/ directory.
@@ -260,57 +268,9 @@ be configured to remove support with `resolve.alias`:
 Since the library uses functions like `Array#forEach`, older browsers require
 [shims to provide missing functions](http://oss.sheetjs.com/js-xlsx/shim.js).
 
-To use the shim, add the shim before the script tag that loads `xlsx.js`:
-
 ```html
-<!-- add the shim first -->
-<script type="text/javascript" src="shim.min.js"></script>
-<!-- after the shim is referenced, add the library -->
-<script type="text/javascript" src="xlsx.full.min.js"></script>
+<script type="text/javascript" src="/path/to/shim.js"></script>
 ```
-
-The script also includes `IE_LoadFile` and `IE_SaveFile` for loading and saving
-files in Internet Explorer versions 6-9.  The `xlsx.extendscript.js` script
-bundles the shim in a format suitable for Photoshop and other Adobe products.
-
-## Philosophy
-
-<details>
-  <summary><b>Philosophy</b> (click to show)</summary>
-
-Prior to SheetJS, APIs for processing spreadsheet files were format-specific.
-Third-party libraries either supported one format, or they involved a separate
-set of classes for each supported file type.  Even though XLSB was introduced in
-Excel 2007, nothing outside of SheetJS or Excel supported the format.
-
-To promote a format-agnostic view, js-xlsx starts from a pure-JS representation
-that we call the ["Common Spreadsheet Format"](#common-spreadsheet-format).
-Emphasizing a uniform object representation enables new features like format
-conversion (reading an XLSX template and saving as XLS) and circumvents the mess
-of classes.  By abstracting the complexities of the various formats, tools
-need not worry about the specific file type!
-
-A simple object representation combined with careful coding practices enables
-use cases in older browsers and in alternative environments like ExtendScript
-and Web Workers. It is always tempting to use the latest and greatest features,
-but they tend to require the latest versions of browsers, limiting usability.
-
-Utility functions capture common use cases like generating JS objects or HTML.
-Most simple operations should only require a few lines of code.  More complex
-operations generally should be straightforward to implement.
-
-Excel pushes the XLSX format as default starting in Excel 2007.  However, there
-are other formats with more appealing properties.  For example, the XLSB format
-is spiritually similar to XLSX but files often tend up taking less than half the
-space and open much faster!  Even though an XLSX writer is available, other
-format writers are available so users can take advantage of the unique
-characteristics of each format.
-
-The primary focus of the Community Edition is correct data interchange, focused
-on extracting data from any compatible data representation and exporting data in
-various formats suitable for any third party interface.
-
-</details>
 
 ## Parsing Workbooks
 
@@ -320,9 +280,6 @@ data and feeding it into the library.  Here are a few common scenarios:
 <details>
   <summary><b>nodejs read a file</b> (click to show)</summary>
 
-`readFile` is only available in server environments. Browsers have no API for
-reading arbitrary files given a path, so another strategy must be used.
-
 ```js
 if(typeof require !== 'undefined') XLSX = require('xlsx');
 var workbook = XLSX.readFile('test.xlsx');
@@ -331,18 +288,13 @@ var workbook = XLSX.readFile('test.xlsx');
 
 </details>
 
-<details>
-  <summary><b>Photoshop ExtendScript read a file</b> (click to show)</summary>
-
-`readFile` wraps the `File` logic in Photoshop and other ExtendScript targets.
-The specified path should be an absolute path:
-
 ```js
-#include "xlsx.extendscript.js"
-/* Read test.xlsx from the Documents folder */
-var workbook = XLSX.readFile(Folder.myDocuments + '/' + 'test.xlsx');
-/* DO SOMETHING WITH workbook HERE */
-```
+/* set up XMLHttpRequest */
+var url = "test_files/formula_stress_test_ajax.xlsx";
+var oReq = new XMLHttpRequest();
+
+oReq.open("GET", url, true);
+oReq.responseType = "arraybuffer";
 
 The [`extendscript` demo](demos/extendscript/) includes a more complex example.
 
@@ -412,46 +364,50 @@ req.send();
 
 </details>
 
-<details>
-  <summary><b>Browser drag-and-drop</b> (click to show)</summary>
-
-Drag-and-drop uses the HTML5 `FileReader` API.
-
 ```js
+/* set up drag-and-drop event */
 function handleDrop(e) {
-  e.stopPropagation(); e.preventDefault();
-  var files = e.dataTransfer.files, f = files[0];
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    var data = new Uint8Array(e.target.result);
-    var workbook = XLSX.read(data, {type: 'array'});
+  e.stopPropagation();
+  e.preventDefault();
+  var files = e.dataTransfer.files;
+  var i, f;
+  
+  for (i = 0, f = files[i]; i != files.length; ++i) {
+    var reader = new FileReader();
+    var name = f.name;
+    reader.onload = function(e) {
+      var data = e.target.result;
 
-    /* DO SOMETHING WITH workbook HERE */
-  };
-  reader.readAsArrayBuffer(f);
+      /* if binary string, read with type 'binary' */
+      var workbook = XLSX.read(data, {type: 'binary'});
+
+      /* DO SOMETHING WITH workbook HERE */
+    };
+    reader.readAsBinaryString(f);
+  }
 }
 drop_dom_element.addEventListener('drop', handleDrop, false);
 ```
 
 </details>
 
-<details>
-  <summary><b>Browser file upload form element</b> (click to show)</summary>
-
-Data from file input elements can be processed using the same `FileReader` API
-as in the drag-and-drop example:
-
 ```js
 function handleFile(e) {
-  var files = e.target.files, f = files[0];
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    var data = new Uint8Array(e.target.result);
-    var workbook = XLSX.read(data, {type: 'array'});
+  var files = e.target.files;
+  var i, f;
+  
+  for (i = 0, f = files[i]; i != files.length; ++i) {
+    var reader = new FileReader();
+    var name = f.name;
+    reader.onload = function(e) {
+      var data = e.target.result;
 
-    /* DO SOMETHING WITH workbook HERE */
-  };
-  reader.readAsArrayBuffer(f);
+      var workbook = XLSX.read(data, {type: 'binary'});
+
+      /* DO SOMETHING WITH workbook HERE */
+    };
+    reader.readAsBinaryString(f);
+  }
 }
 input_dom_element.addEventListener('change', handleFile, false);
 ```
@@ -599,22 +555,17 @@ var ws_data = [
 ];
 var ws = XLSX.utils.aoa_to_sheet(ws_data);
 
-/* Add the worksheet to the workbook */
-XLSX.utils.book_append_sheet(wb, ws, ws_name);
-```
-
-</details>
-
-<details>
-  <summary><b>Creating a new workbook from scratch</b> (click to show)</summary>
-
-The workbook object contains a `SheetNames` array of names and a `Sheets` object
-mapping sheet names to sheet objects. The `XLSX.utils.book_new` utility function
-creates a new workbook object:
-
 ```js
-/* create a new blank workbook */
-var wb = XLSX.utils.book_new();
+var sheet_name_list = workbook.SheetNames;
+
+sheet_name_list.forEach(function(y) { /* iterate through sheets */
+  var worksheet = workbook.Sheets[y];
+  for (z in worksheet) {
+    /* all keys that do not begin with "!" correspond to cell addresses */
+    if(z[0] === '!') continue;
+    console.log(y + "!" + z + "=" + JSON.stringify(worksheet[z].v));
+  }
+});
 ```
 
 The new workbook is blank and contains no worksheets. The write functions will
@@ -623,7 +574,9 @@ error if the workbook is empty.
 </details>
 
 
-### Parsing and Writing Examples
+```sh
+$ <target_file.xlsx base64 | pbcopy
+```
 
 - <http://sheetjs.com/demos/modify.html> read + modify + write files
 
@@ -654,22 +607,6 @@ Assuming `workbook` is a workbook object:
 `XLSX.writeFile` uses `fs.writeFileSync` in server environments:
 
 ```js
-if(typeof require !== 'undefined') XLSX = require('xlsx');
-/* output format determined by filename */
-XLSX.writeFile(workbook, 'out.xlsb');
-/* at this point, out.xlsb is a file that you can distribute */
-```
-
-</details>
-
-<details>
-  <summary><b>Photoshop ExtendScript write a file</b> (click to show)</summary>
-
-`writeFile` wraps the `File` logic in Photoshop and other ExtendScript targets.
-The specified path should be an absolute path:
-
-```js
-#include "xlsx.extendscript.js"
 /* output format determined by filename */
 XLSX.writeFile(workbook, 'out.xlsx');
 /* at this point, out.xlsx is a file that you can distribute */
@@ -686,23 +623,8 @@ The `sheet_to_html` utility function generates HTML code that can be added to
 any DOM element.
 
 ```js
-var worksheet = workbook.Sheets[workbook.SheetNames[0]];
-var container = document.getElementById('tableau');
-container.innerHTML = XLSX.utils.sheet_to_html(worksheet);
-```
-
-</details>
-
-<details>
-  <summary><b>Browser upload file (ajax)</b> (click to show)</summary>
-
-A complete example using XHR is [included in the XHR demo](demos/xhr/), along
-with examples for fetch and wrapper libraries.  This example assumes the server
-can handle Base64-encoded files (see the demo for a basic nodejs server):
-
-```js
-/* in this example, send a base64 string to the server */
-var wopts = { bookType:'xlsx', bookSST:false, type:'base64' };
+/* bookType can be 'xlsx' or 'xlsm' or 'xlsb' */
+var wopts = { bookType:'xlsx', bookSST:false, type:'binary' };
 
 var wbout = XLSX.write(workbook,wopts);
 
@@ -1296,19 +1218,12 @@ XLSX.write(wb, {Props:{Author:"SheetJS"}});
 
 </details>
 
-Excel allows two sheet-scoped defined names to share the same name.  However, a
-sheet-scoped name cannot collide with a workbook-scope name.  Workbook writers
-may not enforce this constraint.
-
-#### Workbook Views
-
-`wb.Workbook.Views` is an array of workbook view objects which have the keys:
-
-| Key             | Description                                         |
-|:----------------|:----------------------------------------------------|
-| `RTL`           | If true, display right-to-left                      |
-
-#### Miscellaneous Workbook Properties
+```sh
+$ cp xlsx.js ../SheetJS.github.io
+$ cd ../SheetJS.github.io
+$ simplehttpserver # or "python -mSimpleHTTPServer" or "serve"
+$ open -a Chromium.app http://localhost:8000/stress.html
+```
 
 `wb.Workbook.WBProps` holds other workbook properties:
 
@@ -1325,43 +1240,10 @@ same content in different ways.  The parsers are expected to convert from the
 underlying file format representation to the Common Spreadsheet Format.  Writers
 are expected to convert from CSF back to the underlying file format.
 
-#### Formulae
-
-The A1-style formula string is stored in the `f` field.  Even though different
-file formats store the formulae in different ways, the formats are translated.
-Even though some formats store formulae with a leading equal sign, CSF formulae
-do not start with `=`.
-
-<details>
-  <summary><b>Representation of A1=1, A2=2, A3=A1+A2</b> (click to show)</summary>
-
-```js
-{
-  "!ref": "A1:A3",
-  A1: { t:'n', v:1 },
-  A2: { t:'n', v:2 },
-  A3: { t:'n', v:3, f:'A1+A2' }
-}
-```
-</details>
-
-Shared formulae are decompressed and each cell has the formula corresponding to
-its cell.  Writers generally do not attempt to generate shared formulae.
-
-Cells with formula entries but no value will be serialized in a way that Excel
-and other spreadsheet tools will recognize.  This library will not automatically
-compute formula results!  For example, to compute `BESSELJ` in a worksheet:
-
-<details>
-  <summary><b>Formula without known value</b> (click to show)</summary>
-
-```js
-{
-  "!ref": "A1:A3",
-  A1: { t:'n', v:3.14159 },
-  A2: { t:'n', v:2 },
-  A3: { t:'n', f:'BESSELJ(A1,A2)' }
-}
+```sh
+$ mv xlsx.js xlsx.new.js
+$ make
+$ diff xlsx.js xlsx.new.js
 ```
 </details>
 
