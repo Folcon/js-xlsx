@@ -1224,6 +1224,13 @@ top-level attributes: `fill`, `font`, `numFmt`, `alignment`, and `border`.
 |                 |                |  `"0.00%;\\(0.00%\\);\\-;@"` // string specifying a custom format, escaping special characters
 | alignment       | vertical       | `"bottom"||"center"||"top"`
 |                 | horizontal     | `"bottom"||"center"||"top"`
+|                 | wrapText       |  `true || false`
+|                 | textRotation   | Number from `0` to `180` or `255` (default is `0`)
+|                 |                |  `90` is rotated up 90 degrees
+|                 |                |  `45` is rotated up 45 degrees
+|                 |                | `135` is rotated down 45 degrees 
+|                 |                | `180` is rotated down 180 degrees
+|                 |                | `255` is special,  aligned vertically
 | border          | top            | `{ style: BORDER_STYLE, color: COLOR_SPEC }`
 |                 | bottom         | `{ style: BORDER_STYLE, color: COLOR_SPEC }`
 |                 | left           | `{ style: BORDER_STYLE, color: COLOR_SPEC }`
