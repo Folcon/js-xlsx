@@ -21718,7 +21718,7 @@ var XmlNode = (function () {
   return XmlNode;
 })();
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-if ((typeof 'module' != 'undefined'  && typeof require != 'undefined') || (typeof $ != 'undefined')) {
+
   var StyleBuilder = function (options) {
 
     var customNumFmtId = 164;
@@ -22094,7 +22094,7 @@ if ((typeof 'module' != 'undefined'  && typeof require != 'undefined') || (typeo
       }
     }.initialize(options||{});
   }
-}
+
 
 XLSX.parseZip = parse_zip;
 XLSX.read = readSync;
