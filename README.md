@@ -850,14 +850,10 @@ is available.  To change a value, be sure to delete `cell.w` (or set it to
 `undefined`) before attempting to export.  The utilities will regenerate the `w`
 text from the number format (`cell.z`) and the raw value if possible.
 
-The actual array formula is stored in the `f` field of the first cell in the
-array range.  Other cells in the range will omit the `f` field.
+**Note**: The .z attribute is now deprecated.  Use the `.s` attribute to specify cell styles including number formats.
+To specify a number format, use `s.numFmt`, e.g. `{v: 42145.822, s: { numFmt: "m/dd/yy"}}` described below.
 
-#### Data Types
-
-The raw value is stored in the `v` value property, interpreted based on the `t`
-type property.  This separation allows for representation of numbers as well as
-numeric text.  There are 6 valid cell types:
+### Data Types
 
 | Type | Description                                                           |
 | :--: | :-------------------------------------------------------------------- |
@@ -1144,9 +1140,11 @@ top-level attributes: `fill`, `font`, `numFmt`, `alignment`, and `border`.
 |                 |                |  `"0.00%"` // string matching a built-in format, see StyleBuilder.SSF
 |                 |                |  `"0.0%"`  // string specifying a custom format
 |                 |                |  `"0.00%;\\(0.00%\\);\\-;@"` // string specifying a custom format, escaping special characters
+|                 |                |  `"m/dd/yy"` // string a date format using Excel's format notation
 | alignment       | vertical       | `"bottom"||"center"||"top"`
 |                 | horizontal     | `"bottom"||"center"||"top"`
 |                 | wrapText       |  `true || false`
+|                 | readingOrder   |  `2` // for right-to-left
 |                 | textRotation   | Number from `0` to `180` or `255` (default is `0`)
 |                 |                |  `90` is rotated up 90 degrees
 |                 |                |  `45` is rotated up 45 degrees
