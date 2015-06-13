@@ -155,6 +155,12 @@ For those contributing to this fork:
 
 ## Supported formats
 
+**NOTE:** This project is a fork of the original (and awesome) [SheetJS/xlsx](https://github.com/SheetJS/js-xlsx) project.
+It is extended to enable cell formats to be read from and written to .xlsx workbooks.
+The intent is to provide a temporary means of using these features in practice, and ultimately to merge this into the primary project.
+Report any issues to https://github.com/protobi/js-xlsx/issues.
+
+
 Supported read formats:
 
 In the browser, just add a script tag:
