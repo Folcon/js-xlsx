@@ -9,5 +9,13 @@ tmp
 *.xlsx
 *.xlsm
 *.xlsb
+*.xml
+*.htm
+*.html
+*.sheetjs
+
 lab/
-.idea/
+test_files
+example.js
+example2.js
+.idea
