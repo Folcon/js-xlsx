@@ -200,49 +200,8 @@ function write_ws_xml_cols(ws, cols)/*:string*/ {
 	return o.join("");
 }
 
-function parse_ws_xml_autofilter(data/*:string*/) {
-	var o = { ref: (data.match(/ref="([^"]*)"/)||[])[1]};
-	return o;
-}
-function write_ws_xml_autofilter(data, ws, wb, idx)/*:string*/ {
-	var ref = typeof data.ref == "string" ? data.ref : encode_range(data.ref);
-	if(!wb.Workbook) wb.Workbook = ({Sheets:[]}/*:any*/);
-	if(!wb.Workbook.Names) wb.Workbook.Names = [];
-	var names/*: Array<any> */ = wb.Workbook.Names;
-	var range = decode_range(ref);
-	if(range.s.r == range.e.r) { range.e.r = decode_range(ws["!ref"]).e.r; ref = encode_range(range); }
-	for(var i = 0; i < names.length; ++i) {
-		var name = names[i];
-		if(name.Name != '_xlnm._FilterDatabase') continue;
-		if(name.Sheet != idx) continue;
-		name.Ref = "'" + wb.SheetNames[idx] + "'!" + ref; break;
-	}
-	if(i == names.length) names.push({ Name: '_xlnm._FilterDatabase', Sheet: idx, Ref: "'" + wb.SheetNames[idx] + "'!" + ref  });
-	return writextag("autoFilter", null, {ref:ref});
-}
-
-/* 18.3.1.88 sheetViews CT_SheetViews */
-/* 18.3.1.87 sheetView CT_SheetView */
-var sviewregex = /<(?:\w:)?sheetView(?:[^>a-z][^>]*)?\/?>/;
-function parse_ws_xml_sheetviews(data, wb/*:WBWBProps*/) {
-	if(!wb.Views) wb.Views = [{}];
-	(data.match(sviewregex)||[]).forEach(function(r/*:string*/, i/*:number*/) {
-		var tag = parsexmltag(r);
-		// $FlowIgnore
-		if(!wb.Views[i]) wb.Views[i] = {};
-		// $FlowIgnore
-		if(parsexmlbool(tag.rightToLeft)) wb.Views[i].RTL = true;
-	});
-}
-function write_ws_xml_sheetviews(ws, opts, idx, wb)/*:string*/ {
-	var sview = ({workbookViewId:"0"}/*:any*/);
-	// $FlowIgnore
-	if((((wb||{}).Workbook||{}).Views||[])[0]) sview.rightToLeft = wb.Workbook.Views[0].RTL ? "1" : "0";
-	return writextag("sheetViews", writextag("sheetView", null, sview), {});
-}
-
-function write_ws_xml_cell(cell/*:Cell*/, ref, ws, opts/*::, idx, wb*/)/*:string*/ {
-	if(cell.v === undefined && cell.f === undefined || cell.t === 'z') return "";
+function write_ws_xml_cell(cell, ref, ws, opts, idx, wb) {
+	if(cell.v === undefined && cell.s === undefined) return "";
 	var vv = "";
 	var oldt = cell.t, oldv = cell.v;
 	if(cell.t !== "z") switch(cell.t) {
@@ -343,41 +302,18 @@ return function parse_ws_xml_data(sdata/*:string*/, s, opts, guess/*:Range*/, th
 				tagc = idx;
 			} else ++tagc;
 			for(i = 0; i != x.length; ++i) if(x.charCodeAt(i) === 62) break; ++i;
-			tag = parsexmltag(x.slice(0,i), true);
-			if(!tag.r) tag.r = encode_cell({r:tagr-1, c:tagc});
-			d = x.slice(i);
-			p = ({t:""}/*:any*/);
+			tag = parsexmltag(x.substr(0,i), true);
+			if(!tag.r) tag.r = utils.encode_cell({r:tagr-1, c:tagc});
+			d = x.substr(i);
+			p = {t:""};
 
-			if((cref=d.match(match_v))!= null && /*::cref != null && */cref[1] !== '') p.v=unescapexml(cref[1]);
-			if(opts.cellFormula) {
-				if((cref=d.match(match_f))!= null && /*::cref != null && */cref[1] !== '') {
-					/* TODO: match against XLSXFutureFunctions */
-					p.f=_xlfn(unescapexml(utf8read(cref[1])));
-					if(/*::cref != null && cref[0] != null && */cref[0].indexOf('t="array"') > -1) {
-						p.F = (d.match(refregex)||[])[1];
-						if(p.F.indexOf(":") > -1) arrayf.push([safe_decode_range(p.F), p.F]);
-					} else if(/*::cref != null && cref[0] != null && */cref[0].indexOf('t="shared"') > -1) {
-						// TODO: parse formula
-						ftag = parsexmltag(cref[0]);
-						sharedf[parseInt(ftag.si, 10)] = [ftag, _xlfn(unescapexml(utf8read(cref[1]))), tag.r];
-					}
-				} else if((cref=d.match(/<f[^>]*\/>/))) {
-					ftag = parsexmltag(cref[0]);
-					if(sharedf[ftag.si]) p.f = shift_formula_xlsx(sharedf[ftag.si][1], sharedf[ftag.si][2]/*[0].ref*/, tag.r);
-				}
-				/* TODO: factor out contains logic */
-				var _tag = decode_cell(tag.r);
-				for(i = 0; i < arrayf.length; ++i)
-					if(_tag.r >= arrayf[i][0].s.r && _tag.r <= arrayf[i][0].e.r)
-						if(_tag.c >= arrayf[i][0].s.c && _tag.c <= arrayf[i][0].e.c)
-							p.F = arrayf[i][1];
-			}
+			if((cref=d.match(match_v))!== null && cref[1] !== '') p.v=unescapexml(cref[1]);
+			if(opts.cellFormula && (cref=d.match(match_f))!== null) p.f=unescapexml(cref[1]);
 
-			if(tag.t == null && p.v === undefined) {
-				if(p.f || p.F) {
-					p.v = 0; p.t = "n";
-				} else if(!opts.sheetStubs) continue;
-				else p.t = "z";
+			/* SCHEMA IS ACTUALLY INCORRECT HERE.  IF A CELL HAS NO T, EMIT "" */
+			if(tag.t === undefined && tag.s === undefined && p.v === undefined) {
+				if(!opts.sheetStubs) continue;
+				p.t = "stub";
 			}
 			else p.t = tag.t || "n";
 			if(guess.s.c > tagc) guess.s.c = tagc;
@@ -385,11 +321,9 @@ return function parse_ws_xml_data(sdata/*:string*/, s, opts, guess/*:Range*/, th
 			/* 18.18.11 t ST_CellType */
 			switch(p.t) {
 				case 'n':
-					if(p.v == "" || p.v == null) {
-						if(!opts.sheetStubs) continue;
-						p.t = 'z';
-					} else p.v = parseFloat(p.v);
-					break;
+          p.v = parseFloat(p.v);
+          if(isNaN(p.v)) p.v = "" // we don't want NaN if p.v is null
+          break;
 				case 's':
 					if(typeof p.v == 'undefined') {
 						if(!opts.sheetStubs) continue;

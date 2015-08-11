@@ -13456,49 +13456,8 @@ function write_ws_xml_cols(ws, cols) {
 	return o.join("");
 }
 
-function parse_ws_xml_autofilter(data) {
-	var o = { ref: (data.match(/ref="([^"]*)"/)||[])[1]};
-	return o;
-}
-function write_ws_xml_autofilter(data, ws, wb, idx) {
-	var ref = typeof data.ref == "string" ? data.ref : encode_range(data.ref);
-	if(!wb.Workbook) wb.Workbook = ({Sheets:[]});
-	if(!wb.Workbook.Names) wb.Workbook.Names = [];
-	var names = wb.Workbook.Names;
-	var range = decode_range(ref);
-	if(range.s.r == range.e.r) { range.e.r = decode_range(ws["!ref"]).e.r; ref = encode_range(range); }
-	for(var i = 0; i < names.length; ++i) {
-		var name = names[i];
-		if(name.Name != '_xlnm._FilterDatabase') continue;
-		if(name.Sheet != idx) continue;
-		name.Ref = "'" + wb.SheetNames[idx] + "'!" + ref; break;
-	}
-	if(i == names.length) names.push({ Name: '_xlnm._FilterDatabase', Sheet: idx, Ref: "'" + wb.SheetNames[idx] + "'!" + ref  });
-	return writextag("autoFilter", null, {ref:ref});
-}
-
-/* 18.3.1.88 sheetViews CT_SheetViews */
-/* 18.3.1.87 sheetView CT_SheetView */
-var sviewregex = /<(?:\w:)?sheetView(?:[^>a-z][^>]*)?\/?>/;
-function parse_ws_xml_sheetviews(data, wb) {
-	if(!wb.Views) wb.Views = [{}];
-	(data.match(sviewregex)||[]).forEach(function(r, i) {
-		var tag = parsexmltag(r);
-		// $FlowIgnore
-		if(!wb.Views[i]) wb.Views[i] = {};
-		// $FlowIgnore
-		if(parsexmlbool(tag.rightToLeft)) wb.Views[i].RTL = true;
-	});
-}
-function write_ws_xml_sheetviews(ws, opts, idx, wb) {
-	var sview = ({workbookViewId:"0"});
-	// $FlowIgnore
-	if((((wb||{}).Workbook||{}).Views||[])[0]) sview.rightToLeft = wb.Workbook.Views[0].RTL ? "1" : "0";
-	return writextag("sheetViews", writextag("sheetView", null, sview), {});
-}
-
-function write_ws_xml_cell(cell, ref, ws, opts) {
-	if(cell.v === undefined && cell.f === undefined || cell.t === 'z') return "";
+function write_ws_xml_cell(cell, ref, ws, opts, idx, wb) {
+	if(cell.v === undefined && cell.s === undefined) return "";
 	var vv = "";
 	var oldt = cell.t, oldv = cell.v;
 	if(cell.t !== "z") switch(cell.t) {
@@ -13629,11 +13588,10 @@ return function parse_ws_xml_data(sdata, s, opts, guess, themes, styles) {
 							p.F = arrayf[i][1];
 			}
 
-			if(tag.t == null && p.v === undefined) {
-				if(p.f || p.F) {
-					p.v = 0; p.t = "n";
-				} else if(!opts.sheetStubs) continue;
-				else p.t = "z";
+			/* SCHEMA IS ACTUALLY INCORRECT HERE.  IF A CELL HAS NO T, EMIT "" */
+			if(tag.t === undefined && tag.s === undefined && p.v === undefined) {
+				if(!opts.sheetStubs) continue;
+				p.t = "stub";
 			}
 			else p.t = tag.t || "n";
 			if(guess.s.c > tagc) guess.s.c = tagc;
@@ -13641,11 +13599,9 @@ return function parse_ws_xml_data(sdata, s, opts, guess, themes, styles) {
 			/* 18.18.11 t ST_CellType */
 			switch(p.t) {
 				case 'n':
-					if(p.v == "" || p.v == null) {
-						if(!opts.sheetStubs) continue;
-						p.t = 'z';
-					} else p.v = parseFloat(p.v);
-					break;
+          p.v = parseFloat(p.v);
+          if(isNaN(p.v)) p.v = "" // we don't want NaN if p.v is null
+          break;
 				case 's':
 					if(typeof p.v == 'undefined') {
 						if(!opts.sheetStubs) continue;
