@@ -3,10 +3,9 @@
 /*exported XLSX */
 /*global global, exports, module, require:false, process:false, Buffer:false, ArrayBuffer:false */
 var XLSX = {};
-function make_xlsx_lib(XLSX){
-XLSX.version = '0.16.5';
-var current_codepage = 1200, current_ansi = 1252;
-/*global cptable:true, window */
+(function make_xlsx(XLSX){
+XLSX.version = '0.8.6';
+var current_codepage = 1200, current_cptable;
 if(typeof module !== "undefined" && typeof require !== 'undefined') {
 	if(typeof cptable === 'undefined') {
 		if(typeof global !== 'undefined') global.cptable = undefined;
@@ -10194,9 +10193,83 @@ var clrsregex = /<a:clrScheme([^>]*)>[\s\S]*<\/a:clrScheme>/;
 var fntsregex = /<a:fontScheme([^>]*)>[\s\S]*<\/a:fontScheme>/;
 var fmtsregex = /<a:fmtScheme([^>]*)>[\s\S]*<\/a:fmtScheme>/;
 
-/* 20.1.6.10 themeElements CT_BaseStyles */
-function parse_themeElements(data, themes, opts) {
-	themes.themeElements = {};
+function write_ws_xml_cols(ws, cols) {
+	var o = ["<cols>"], col, width;
+	for(var i = 0; i != cols.length; ++i) {
+		if(!(col = cols[i])) continue;
+		var p = {min:i+1,max:i+1};
+		/* wch (chars), wpx (pixels) */
+		width = -1;
+		if(col.wpx) width = px2char(col.wpx);
+		else if(col.wch) width = col.wch;
+		if(width > -1) { p.width = char2width(width); p.customWidth= 1; }
+		o[o.length] = (writextag('col', null, p));
+	}
+	o[o.length] = "</cols>";
+	return o.join("");
+}
+
+function write_ws_xml_cell(cell, ref, ws, opts, idx, wb) {
+	if(cell.v === undefined && cell.s === undefined) return "";
+	var vv = "";
+	var oldt = cell.t, oldv = cell.v;
+	switch(cell.t) {
+		case 'b': vv = cell.v ? "1" : "0"; break;
+		case 'n': vv = ''+cell.v; break;
+		case 'e': vv = BErr[cell.v]; break;
+		case 'd':
+			if(opts.cellDates) vv = new Date(cell.v).toISOString();
+			else {
+				cell.t = 'n';
+				vv = ''+(cell.v = datenum(cell.v));
+				if(typeof cell.z === 'undefined') cell.z = SSF._table[14];
+			}
+			break;
+		default: vv = cell.v; break;
+	}
+	var v = writetag('v', escapexml(vv)), o = {r:ref};
+	/* TODO: cell style */
+	var os = get_cell_style(opts.cellXfs, cell, opts);
+	if(os !== 0) o.s = os;
+	switch(cell.t) {
+		case 'n': break;
+		case 'd': o.t = "d"; break;
+		case 'b': o.t = "b"; break;
+		case 'e': o.t = "e"; break;
+		default:
+			if(opts.bookSST) {
+				v = writetag('v', ''+get_sst_id(opts.Strings, cell.v));
+				o.t = "s"; break;
+			}
+			o.t = "str"; break;
+	}
+	if(cell.t != oldt) { cell.t = oldt; cell.v = oldv; }
+	return writextag('c', v, o);
+}
+
+var parse_ws_xml_data = (function parse_ws_xml_data_factory() {
+	var cellregex = /<(?:\w+:)?c[ >]/, rowregex = /<\/(?:\w+:)?row>/;
+	var rregex = /r=["']([^"']*)["']/, isregex = /<is>([\S\s]*?)<\/is>/;
+	var match_v = matchtag("v"), match_f = matchtag("f");
+
+return function parse_ws_xml_data(sdata, s, opts, guess) {
+	var ri = 0, x = "", cells = [], cref = [], idx = 0, i=0, cc=0, d="", p;
+	var tag, tagr = 0, tagc = 0;
+	var sstr;
+	var fmtid = 0, fillid = 0, do_format = Array.isArray(styles.CellXf), cf;
+	for(var marr = sdata.split(rowregex), mt = 0, marrlen = marr.length; mt != marrlen; ++mt) {
+		x = marr[mt].trim();
+		var xlen = x.length;
+		if(xlen === 0) continue;
+
+		/* 18.3.1.73 row CT_Row */
+		for(ri = 0; ri < xlen; ++ri) if(x.charCodeAt(ri) === 62) break; ++ri;
+		tag = parsexmltag(x.substr(0,ri), true);
+		/* SpreadSheetGear uses implicit r/c */
+		tagr = typeof tag.r !== 'undefined' ? parseInt(tag.r, 10) : tagr+1; tagc = -1;
+		if(opts.sheetRows && opts.sheetRows < tagr) continue;
+		if(guess.s.r > tagr - 1) guess.s.r = tagr - 1;
+		if(guess.e.r < tagr - 1) guess.e.r = tagr - 1;
 
 		/* 18.3.1.4 c CT_Cell */
 		cells = x.substr(ri).split(cellregex);
@@ -10224,7 +10297,7 @@ function parse_themeElements(data, themes, opts) {
 			if(opts.cellFormula && (cref=d.match(match_f))!== null) p.f=unescapexml(cref[1]);
 
 			/* SCHEMA IS ACTUALLY INCORRECT HERE.  IF A CELL HAS NO T, EMIT "" */
-			if(tag.t === undefined && p.v === undefined) {
+			if(tag.t === undefined && tag.s === undefined && p.v === undefined) {
 				if(!opts.sheetStubs) continue;
 				p.t = "stub";
 			}
@@ -10233,7 +10306,10 @@ function parse_themeElements(data, themes, opts) {
 			if(guess.e.c < idx) guess.e.c = idx;
 			/* 18.18.11 t ST_CellType */
 			switch(p.t) {
-				case 'n': p.v = parseFloat(p.v); break;
+				case 'n':
+          p.v = parseFloat(p.v);
+          if(isNaN(p.v)) p.v = "" // we don't want NaN if p.v is null
+          break;
 				case 's':
 					sstr = strs[parseInt(p.v, 10)];
 					p.v = sstr.t;
