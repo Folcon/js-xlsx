@@ -108,7 +108,7 @@ function get_cell_style_csf(cellXf) {
     }
 
 
-    return s;
+    return JSON.parse(JSON.stringify(s));
   }
   return null;
 }
