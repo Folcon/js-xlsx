@@ -43,17 +43,10 @@
 		"wmf": "~1.0.1"
 	},
 	"devDependencies": {
-		"@sheetjs/uglify-js": "~2.7.3",
-		"@types/node": "^8.5.9",
-		"blanket": "~1.2.3",
-		"dtslint": "^0.1.2",
-		"jsdom": "~11.1.0",
-		"mocha": "~2.5.3",
-		"typescript": "2.2.0"
-	},
-	"repository": {
-		"type": "git",
-		"url": "git://github.com/SheetJS/sheetjs.git"
+		"cheerio":"^0.19.0",
+		"mocha":"",
+		"xlsjs":"",
+		"uglify-js":""
 	},
 	"scripts": {
 		"pretest": "git submodule init && git submodule update",
