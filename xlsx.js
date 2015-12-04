@@ -10832,6 +10832,13 @@ function write_ws_xml(idx, opts, wb) {
   });
   o[o.length] = writextag('sheetViews', sheetView);
 
+  var sheetView = writextag('sheetView', null,  {
+    showGridLines: opts.showGridLines == false ? '0' : '1',
+    tabSelected: opts.tabSelected === undefined ? '1' :  opts.tabSelected,
+    workbookViewId: opts.workbookViewId === undefined ? '0' : opts.workbookViewId
+  });
+  o[o.length] = writextag('sheetViews', sheetView);
+
 	if(ws['!cols'] !== undefined && ws['!cols'].length > 0) o[o.length] = (write_ws_xml_cols(ws, ws['!cols']));
 	o[sidx = o.length] = '<sheetData/>';
 	if(ws['!ref'] !== undefined) {
