@@ -1073,46 +1073,68 @@ Dialogsheets are represented as standard sheets. They are distinguished with the
 
 `wb.Props` is an object storing the standard properties.  `wb.Custprops` stores
 custom properties.  Since the XLS standard properties deviate from the XLSX
-standard, XLS parsing stores core properties in both places.
+standard, XLS parsing stores core properties in both places.  .
 
-`wb.Workbook` stores [workbook-level attributes](#workbook-level-attributes).
 
-#### Workbook File Properties
+## Parsing Options
 
-The various file formats use different internal names for file properties.  The
-workbook `Props` object normalizes the names:
+The exported `read` and `readFile` functions accept an options argument:
 
-<details>
-  <summary><b>File Properties</b> (click to show)</summary>
+| Option Name | Default | Description |
+| :---------- | ------: | :---------- |
+| cellFormula | true    | Save formulae to the .f field ** |
+| cellHTML    | true    | Parse rich text and save HTML to the .h field |
+| cellNF      | false   | Save number format string to the .z field |
+| cellStyles  | false   | Save style/theme info to the .s field |
+| cellDates   | false   | Store dates as type `d` (default is `n`) ** |
+| sheetStubs  | false   | Create cell objects for stub cells |
+| sheetRows   | 0       | If >0, read the first `sheetRows` rows ** |
+| bookDeps    | false   | If true, parse calculation chains |
+| bookFiles   | false   | If true, add raw files to book object ** |
+| bookProps   | false   | If true, only parse enough to get book metadata ** |
+| bookSheets  | false   | If true, only parse enough to get the sheet names |
+| bookVBA     | false   | If true, expose vbaProject.bin to `vbaraw` field ** |
+| password    | ""      | If defined and file is encrypted, use password ** |
 
-| JS Name       | Excel Description              |
-|:--------------|:-------------------------------|
-| `Title`       | Summary tab "Title"            |
-| `Subject`     | Summary tab "Subject"          |
-| `Author`      | Summary tab "Author"           |
-| `Manager`     | Summary tab "Manager"          |
-| `Company`     | Summary tab "Company"          |
-| `Category`    | Summary tab "Category"         |
-| `Keywords`    | Summary tab "Keywords"         |
-| `Comments`    | Summary tab "Comments"         |
-| `LastAuthor`  | Statistics tab "Last saved by" |
-| `CreatedDate` | Statistics tab "Created"       |
+- `cellFormula` option only applies to formats that require extra processing to
+  parse formulae (XLS/XLSB).
+- Even if `cellNF` is false, formatted text will be generated and saved to `.w`
+- In some cases, sheets may be parsed even if `bookSheets` is false.
+- `bookSheets` and `bookProps` combine to give both sets of information
+- `Deps` will be an empty object if `bookDeps` is falsy
+- `bookFiles` behavior depends on file type:
+    * `keys` array (paths in the ZIP) for ZIP-based formats
+    * `files` hash (mapping paths to objects representing the files) for ZIP
+    * `cfb` object for formats using CFB containers
+- `sheetRows-1` rows will be generated when looking at the JSON object output
+  (since the header row is counted as a row when parsing the data)
+- `bookVBA` merely exposes the raw vba object.  It does not parse the data.
+- `cellDates` currently does not convert numerical dates to JS dates.
+- Currently only XOR encryption is supported.  Unsupported error will be thrown
+  for files employing other encryption methods.
 
-</details>
+The defaults are enumerated in bits/84_defaults.js
 
-For example, to set the workbook title property:
+## Writing Options
 
-```js
-if(!wb.Props) wb.Props = {};
-wb.Props.Title = "Insert Title Here";
-```
+The exported `write` and `writeFile` functions accept an options argument:
 
-Custom properties are added in the workbook `Custprops` object:
+| Option Name | Default | Description |
+| :---------- | ------: | :---------- |
+| cellDates   | false   | Store dates as type `d` (default is `n`) |
+| bookSST     | false   | Generate Shared String Table ** |
+| bookType    | 'xlsx'  | Type of Workbook ("xlsx" or "xlsm" or "xlsb") |
+| showGridLines | true | Show gridlines on all pages |
+| tabSelected | '1' | Initial tab selected |
 
-```js
-if(!wb.Custprops) wb.Custprops = {};
-wb.Custprops["Custom Property"] = "Custom Value";
-```
+- `bookSST` is slower and more memory intensive, but has better compatibility
+  with older versions of iOS Numbers
+- `bookType = 'xlsb'` is stubbed and far from complete
+- The raw data is the only thing guaranteed to be saved.  Formulae, formatting,
+  and other niceties may not be serialized (pending CSF standardization)
+- `cellDates` only applies to XLSX output and is not guaranteed to work with
+  third-party readers.  Excel itself does not usually write cells with type `d`
+  so non-Excel tools may ignore the data or blow up in the presence of dates.
 
 
 ## Cell Styles
