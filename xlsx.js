@@ -13346,43 +13346,16 @@ function write_ws_xml_merges(merges) {
 	return o + '</mergeCells>';
 }
 
-/* 18.3.1.82-3 sheetPr CT_ChartsheetPr / CT_SheetPr */
-function parse_ws_xml_sheetpr(sheetPr, s, wb, idx) {
-	var data = parsexmltag(sheetPr);
-	if(!wb.Sheets[idx]) wb.Sheets[idx] = {};
-	if(data.codeName) wb.Sheets[idx].CodeName = data.codeName;
-}
-function write_ws_xml_sheetpr(ws, wb, idx, opts, o) {
-	var needed = false;
-	var props = {}, payload = null;
-	if(opts.bookType !== 'xlsx' && wb.vbaraw) {
-		var cname = wb.SheetNames[idx];
-		try { if(wb.Workbook) cname = wb.Workbook.Sheets[idx].CodeName || cname; } catch(e) {}
-		needed = true;
-		props.codeName = escapexml(cname);
-	}
+//<pageSetup scale="90" orientation="portrait" horizontalDpi="4294967292" verticalDpi="4294967292"/>
+//<rowBreaks count="1" manualBreakCount="1">
+// <brk id="8" max="16383" man="1"/>
+//</rowBreaks>
+//<colBreaks count="1" manualBreakCount="1">
+//    <brk id="8" max="1048575" man="1"/>
+//</colBreaks>
 
-	if(!needed && !payload) return;
-	o[o.length] = (writextag('sheetPr', payload, props));
-}
 
-/* 18.3.1.85 sheetProtection CT_SheetProtection */
-var sheetprot_deffalse = ["objects", "scenarios", "selectLockedCells", "selectUnlockedCells"];
-var sheetprot_deftrue = [
-	"formatColumns", "formatRows", "formatCells",
-	"insertColumns", "insertRows", "insertHyperlinks",
-	"deleteColumns", "deleteRows",
-	"sort", "autoFilter", "pivotTables"
-];
-function write_ws_xml_protection(sp) {
-	// algorithmName, hashValue, saltValue, spinCountpassword
-	var o = ({sheet:1});
-	sheetprot_deffalse.forEach(function(n) { if(sp[n] != null && sp[n]) o[n] = "1"; });
-	sheetprot_deftrue.forEach(function(n) { if(sp[n] != null && !sp[n]) o[n] = "0"; });
-	/* TODO: algorithm */
-	if(sp.password) o.password = crypto_CreatePasswordVerifier_Method1(sp.password).toString(16).toUpperCase();
-	return writextag('sheetProtection', null, o);
-}
+
 
 function parse_ws_xml_hlinks(s, data, rels) {
 	var dense = Array.isArray(s);
@@ -13790,31 +13763,35 @@ ws['!links'].forEach(function(l) {
 
 	/* smartTags */
 
-	if(_drawing.length > 0) {
-		rId = add_rels(rels, -1, "../drawings/drawing" + (idx+1) + ".xml", RELS.DRAW);
-		o[o.length] = writextag("drawing", null, {"r:id":"rId" + rId});
-		ws['!drawing'] = _drawing;
-	}
+  if (ws['!rowBreaks'] !== undefined) o[o.length] =  write_ws_xml_row_breaks(ws['!rowBreaks'])
+  if (ws['!colBreaks'] !== undefined) o[o.length] =  write_ws_xml_col_breaks(ws['!colBreaks'])
 
-	if(ws['!comments'].length > 0) {
-		rId = add_rels(rels, -1, "../drawings/vmlDrawing" + (idx+1) + ".vml", RELS.VML);
-		o[o.length] = writextag("legacyDrawing", null, {"r:id":"rId" + rId});
-		ws['!legacy'] = rId;
-	}
-
-	/* legacyDrawingHF */
-	/* picture */
-	/* oleObjects */
-	/* controls */
-	/* webPublishItems */
-	/* tableParts */
-	/* extLst */
-
-	if(o.length>1) { o[o.length] = ('</worksheet>'); o[1]=o[1].replace("/>",">"); }
+	if(o.length>2) { o[o.length] = ('</worksheet>'); o[1]=o[1].replace("/>",">"); }
 	return o.join("");
 }
 
-/* [MS-XLSB] 2.4.726 BrtRowHdr */
+function write_ws_xml_row_breaks(breaks) {
+  console.log("Writing breaks")
+  var brk = [];
+  for (var i=0; i<breaks.length; i++) {
+    var thisBreak = ''+ (breaks[i]);
+    var nextBreak = '' + (breaks[i+1] || '16383');
+    brk.push(writextag('brk', null, {id: thisBreak, max: nextBreak, man: '1'}))
+  }
+  return writextag('rowBreaks', brk.join(' '), {count: brk.length, manualBreakCount: brk.length})
+}
+function write_ws_xml_col_breaks(breaks) {
+  console.log("Writing breaks");
+  var brk = [];
+  for (var i=0; i<breaks.length; i++) {
+    var thisBreak = ''+ (breaks[i]);
+    var nextBreak = '' + (breaks[i+1] || '16383');
+    brk.push(writextag('brk', null, {id: thisBreak, max: nextBreak, man: '1'}))
+  }
+  return writextag('colBreaks', brk.join(' '), {count: brk.length, manualBreakCount: brk.length})
+}
+
+/* [MS-XLSB] 2.4.718 BrtRowHdr */
 function parse_BrtRowHdr(data, length) {
 	var z = ({});
 	var tgt = data.l + length;
