@@ -10639,10 +10639,38 @@ function shift_formula_xlsx(f, range, cell) {
 	return shift_formula_str(f, delta);
 }
 
-/* TODO: parse formula */
-function fuzzyfmla(f) {
-	if(f.length == 1) return false;
-	return true;
+//<pageSetup scale="90" orientation="portrait" horizontalDpi="4294967292" verticalDpi="4294967292"/>
+//<rowBreaks count="1" manualBreakCount="1">
+// <brk id="8" max="16383" man="1"/>
+//</rowBreaks>
+//<colBreaks count="1" manualBreakCount="1">
+//    <brk id="8" max="1048575" man="1"/>
+//</colBreaks>
+
+
+
+
+function parse_ws_xml_hlinks(s, data, rels) {
+	for(var i = 0; i != data.length; ++i) {
+		var val = parsexmltag(data[i], true);
+		if(!val.ref) return;
+		var rel = rels ? rels['!id'][val.id] : null;
+		if(rel) {
+			val.Target = rel.Target;
+			if(val.location) val.Target += "#"+val.location;
+			val.Rel = rel;
+		} else {
+			val.Target = val.location;
+			rel = {Target: val.location, TargetMode: 'Internal'};
+			val.Rel = rel;
+		}
+		var rng = safe_decode_range(val.ref);
+		for(var R=rng.s.r;R<=rng.e.r;++R) for(var C=rng.s.c;C<=rng.e.c;++C) {
+			var addr = encode_cell({c:C,r:R});
+			if(!s[addr]) s[addr] = {t:"stub",v:undefined};
+			s[addr].l = val;
+		}
+	}
 }
 
 function _xlfn(f) {
@@ -10849,20 +10877,39 @@ function write_ws_xml(idx, opts, wb) {
 
 	if(ws['!merges'] !== undefined && ws['!merges'].length > 0) o[o.length] = (write_ws_xml_merges(ws['!merges']));
 
-  if (ws['!pageSetup'] !== undefined) o[o.length] =  write_ws_xml_pagesetup(ws['!pageSetup'])
   if (ws['!rowBreaks'] !== undefined) o[o.length] =  write_ws_xml_row_breaks(ws['!rowBreaks'])
   if (ws['!colBreaks'] !== undefined) o[o.length] =  write_ws_xml_col_breaks(ws['!colBreaks'])
-
 
 	if(o.length>2) { o[o.length] = ('</worksheet>'); o[1]=o[1].replace("/>",">"); }
 	return o.join("");
 }
 
-/* [MS-XLS] 2.5.198.37 ; [MS-XLSB] 2.5.97.29 */
-function parse_PtgAttrSemi(blob, length, opts) {
-	var bitSemi = (blob[blob.l+1] & 0xFF) ? 1 : 0;
-	blob.l += opts && opts.biff == 2 ? 3 : 4;
-	return [bitSemi];
+function write_ws_xml_row_breaks(breaks) {
+  console.log("Writing breaks")
+  var brk = [];
+  for (var i=0; i<breaks.length; i++) {
+    var thisBreak = ''+ (breaks[i]);
+    var nextBreak = '' + (breaks[i+1] || '16383');
+    brk.push(writextag('brk', null, {id: thisBreak, max: nextBreak, man: '1'}))
+  }
+  return writextag('rowBreaks', brk.join(' '), {count: brk.length, manualBreakCount: brk.length})
+}
+function write_ws_xml_col_breaks(breaks) {
+  console.log("Writing breaks");
+  var brk = [];
+  for (var i=0; i<breaks.length; i++) {
+    var thisBreak = ''+ (breaks[i]);
+    var nextBreak = '' + (breaks[i+1] || '16383');
+    brk.push(writextag('brk', null, {id: thisBreak, max: nextBreak, man: '1'}))
+  }
+  return writextag('colBreaks', brk.join(' '), {count: brk.length, manualBreakCount: brk.length})
+}
+/* [MS-XLSB] 2.4.718 BrtRowHdr */
+function parse_BrtRowHdr(data, length) {
+	var z = [];
+	z.r = data.read_shift(4);
+	data.l += length-4;
+	return z;
 }
 
 /* [MS-XLS] 2.5.198.40 ; [MS-XLSB] 2.5.97.32 */

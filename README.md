@@ -894,11 +894,8 @@ In addition to the base sheet keys, worksheets also add:
   will write all cells in the merge range if they exist, so be sure that only
   the first cell (upper-left) in the range is set.
 
-The following properties are currently used when generating an XLSX file, but not yet parsed:
-
 - `ws['!rowBreaks']`: array of row break points, e.g. `[16,32]`
 - `ws['!colBreaks']`: array of col break points, e.g. `[8,16]`
-- `ws['!pageSetup']`: `{scale: '100', orientation: 'portrait'||'landscape'}
 
 
 ### Workbook Object
