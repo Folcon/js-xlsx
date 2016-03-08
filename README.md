@@ -636,7 +636,20 @@ any DOM element.
 
 ```js
 /* bookType can be 'xlsx' or 'xlsm' or 'xlsb' */
-var wopts = { bookType:'xlsx', bookSST:false, type:'binary' };
+var wopts = { 
+   bookType:'xlsx', 
+  bookSST:false, 
+  type:'binary',
+  showGridLines: false,
+  defaultCellStyle: { font: { name: "Verdana", sz: 11, color: "FF00FF88"}, fill: {fgColor: {rgb: "FFFFAA00"}}},
+  Props: {
+        title: "Goldilocks",
+        description: "Girl discovers mysterious cottage in forest ",
+        creator:"Traditional folk tale",
+        keywords: "Bears; porridge; property rights; iterative optimization",
+        subject: "subject"
+      }
+  };
 
 var wbout = XLSX.write(workbook,wopts);
 
@@ -1096,7 +1109,7 @@ The exported `write` and `writeFile` functions accept an options argument:
 | cellDates   | false   | Store dates as type `d` (default is `n`) |
 | bookSST     | false   | Generate Shared String Table ** |
 | bookType    | 'xlsx'  | Type of Workbook ("xlsx" or "xlsm" or "xlsb") |
-| showGridLines | true | Show gridlines on all pages  |
+| showGridLines | true | Show grid lines on all pages  (note capital L) |
 | tabSelected | '1' | Initial tab selected |
 
 - `bookSST` is slower and more memory intensive, but has better compatibility
