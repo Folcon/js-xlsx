@@ -4,7 +4,7 @@
 /*global global, exports, module, require:false, process:false, Buffer:false, ArrayBuffer:false */
 var XLSX = {};
 (function make_xlsx(XLSX){
-XLSX.version = '0.8.6';
+XLSX.version = '0.8.9';
 var current_codepage = 1200, current_cptable;
 if(typeof module !== "undefined" && typeof require !== 'undefined') {
 	if(typeof cptable === 'undefined') {
@@ -10180,7 +10180,27 @@ function parse_clrScheme(t, themes, opts) {
 
 			default: if(opts && opts.WTF) throw new Error('Unrecognized ' + y[0] + ' in clrScheme');
 		}
-	});
+	}
+	if(mergecells.length > 0) s["!merges"] = mergecells;
+	if(columns.length > 0) s["!cols"] = columns;
+	return s;
+}
+
+function write_ws_xml_merges(merges) {
+	if(merges.length == 0) return "";
+	var o = '<mergeCells count="' + merges.length + '">';
+	for(var i = 0; i != merges.length; ++i) o += '<mergeCell ref="' + encode_range(merges[i]) + '"/>';
+	return o + '</mergeCells>';
+}
+
+function write_ws_xml_pagesetup(setup) {
+  var pageSetup =  writextag('pageSetup', null, {
+    scale: setup.scale || '100',
+    orientation: setup.orientation || 'portrait',
+    horizontalDpi : setup.horizontalDpi || '4294967292',
+    verticalDpi : setup.verticalDpi || '4294967292'
+  })
+  return pageSetup;
 }
 
 /* 20.1.4.1.18 fontScheme CT_FontScheme */
@@ -10364,7 +10384,33 @@ return function parse_ws_xml_data(sdata, s, opts, guess) {
 	});
 }
 
-var themeltregex = /<a:themeElements([^>]*)>[\s\S]*<\/a:themeElements>/;
+var WS_XML_ROOT = writextag('worksheet', null, {
+	'xmlns': XMLNS.main[0],
+	'xmlns:r': XMLNS.r
+});
+
+function write_ws_xml(idx, opts, wb) {
+	var o = [XML_HEADER, WS_XML_ROOT];
+	var s = wb.SheetNames[idx], sidx = 0, rdata = "";
+	var ws = wb.Sheets[s];
+	if(ws === undefined) ws = {};
+	var ref = ws['!ref']; if(ref === undefined) ref = 'A1';
+	o[o.length] = (writextag('dimension', null, {'ref': ref}));
+
+  var sheetView = writextag('sheetView', null,  {
+    showGridLines: opts.showGridLines == false ? '0' : '1',
+    tabSelected: opts.tabSelected === undefined ? '0' :  opts.tabSelected,
+    workbookViewId: opts.workbookViewId === undefined ? '0' : opts.workbookViewId
+  });
+  o[o.length] = writextag('sheetViews', sheetView);
+
+	if(ws['!cols'] !== undefined && ws['!cols'].length > 0) o[o.length] = (write_ws_xml_cols(ws, ws['!cols']));
+	o[sidx = o.length] = '<sheetData/>';
+	if(ws['!ref'] !== undefined) {
+		rdata = write_ws_xml_data(ws, opts, idx, wb);
+		if(rdata.length > 0) o[o.length] = (rdata);
+	}
+	if(o.length>sidx+1) { o[o.length] = ('</sheetData>'); o[sidx]=o[sidx].replace("/>",">"); }
 
 /* 14.2.7 Theme Part */
 function parse_theme_xml(data, opts) {

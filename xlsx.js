@@ -4,7 +4,7 @@
 /*global global, exports, module, require:false, process:false, Buffer:false, ArrayBuffer:false */
 var XLSX = {};
 (function make_xlsx(XLSX){
-XLSX.version = '0.8.6';
+XLSX.version = '0.8.9';
 var current_codepage = 1200, current_cptable;
 if(typeof module !== "undefined" && typeof require !== 'undefined') {
 	if(typeof cptable === 'undefined') {
@@ -13437,7 +13437,6 @@ function write_ws_xml_pagesetup(setup) {
     horizontalDpi : setup.horizontalDpi || '4294967292',
     verticalDpi : setup.verticalDpi || '4294967292'
   })
-  console.log(pageSetup);
   return pageSetup;
 }
 
@@ -13792,7 +13791,7 @@ function write_ws_xml(idx, opts, wb, rels) {
 
   var sheetView = writextag('sheetView', null,  {
     showGridLines: opts.showGridLines == false ? '0' : '1',
-    tabSelected: opts.tabSelected === undefined ? '1' :  opts.tabSelected,
+    tabSelected: opts.tabSelected === undefined ? '0' :  opts.tabSelected,
     workbookViewId: opts.workbookViewId === undefined ? '0' : opts.workbookViewId
   });
   o[o.length] = writextag('sheetViews', sheetView);

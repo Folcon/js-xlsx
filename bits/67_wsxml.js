@@ -98,15 +98,15 @@ function write_ws_xml_merges(merges/*:Array<Range>*/)/*:string*/ {
 	return o + '</mergeCells>';
 }
 
-//<pageSetup scale="90" orientation="portrait" horizontalDpi="4294967292" verticalDpi="4294967292"/>
-//<rowBreaks count="1" manualBreakCount="1">
-// <brk id="8" max="16383" man="1"/>
-//</rowBreaks>
-//<colBreaks count="1" manualBreakCount="1">
-//    <brk id="8" max="1048575" man="1"/>
-//</colBreaks>
-
-
+function write_ws_xml_pagesetup(setup) {
+  var pageSetup =  writextag('pageSetup', null, {
+    scale: setup.scale || '100',
+    orientation: setup.orientation || 'portrait',
+    horizontalDpi : setup.horizontalDpi || '4294967292',
+    verticalDpi : setup.verticalDpi || '4294967292'
+  })
+  return pageSetup;
+}
 
 
 function parse_ws_xml_hlinks(s, data, rels) {
@@ -421,7 +421,7 @@ function write_ws_xml(idx/*:number*/, opts, wb/*:Workbook*/, rels)/*:string*/ {
 
   var sheetView = writextag('sheetView', null,  {
     showGridLines: opts.showGridLines == false ? '0' : '1',
-    tabSelected: opts.tabSelected === undefined ? '1' :  opts.tabSelected,
+    tabSelected: opts.tabSelected === undefined ? '0' :  opts.tabSelected,
     workbookViewId: opts.workbookViewId === undefined ? '0' : opts.workbookViewId
   });
   o[o.length] = writextag('sheetViews', sheetView);
