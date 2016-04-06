@@ -10813,11 +10813,43 @@ function parse_PtgAttrIf(blob, length, opts) {
 	return [bitIf, blob.read_shift(opts && opts.biff == 2 ? 1 : 2)];
 }
 
-/* [MS-XLSB] 2.5.97.28 */
-function parse_PtgAttrIfError(blob) {
-	var bitIf = (blob[blob.l+1] & 0xFF) ? 1 : 0;
-	blob.l += 2;
-	return [bitIf, blob.read_shift(2)];
+var WS_XML_ROOT = writextag('worksheet', null, {
+	'xmlns': XMLNS.main[0],
+	'xmlns:r': XMLNS.r
+});
+
+function write_ws_xml(idx, opts, wb) {
+	var o = [XML_HEADER, WS_XML_ROOT];
+	var s = wb.SheetNames[idx], sidx = 0, rdata = "";
+	var ws = wb.Sheets[s];
+	if(ws === undefined) ws = {};
+	var ref = ws['!ref']; if(ref === undefined) ref = 'A1';
+	o[o.length] = (writextag('dimension', null, {'ref': ref}));
+
+  var sheetView = writextag('sheetView', null,  {
+    showGridLines: opts.showGridLines == false ? '0' : '1',
+    tabSelected: opts.tabSelected === undefined ? '0' :  opts.tabSelected,  // see issue #26, need to set WorkbookViews if this is set
+    workbookViewId: opts.workbookViewId === undefined ? '0' : opts.workbookViewId
+  });
+  o[o.length] = writextag('sheetViews', sheetView);
+
+	if(ws['!cols'] !== undefined && ws['!cols'].length > 0) o[o.length] = (write_ws_xml_cols(ws, ws['!cols']));
+	o[sidx = o.length] = '<sheetData/>';
+	if(ws['!ref'] !== undefined) {
+		rdata = write_ws_xml_data(ws, opts, idx, wb);
+		if(rdata.length > 0) o[o.length] = (rdata);
+	}
+	if(o.length>sidx+1) { o[o.length] = ('</sheetData>'); o[sidx]=o[sidx].replace("/>",">"); }
+
+	if(ws['!merges'] !== undefined && ws['!merges'].length > 0) o[o.length] = (write_ws_xml_merges(ws['!merges']));
+
+  if (ws['!pageSetup'] !== undefined) o[o.length] =  write_ws_xml_pagesetup(ws['!pageSetup'])
+  if (ws['!rowBreaks'] !== undefined) o[o.length] =  write_ws_xml_row_breaks(ws['!rowBreaks'])
+  if (ws['!colBreaks'] !== undefined) o[o.length] =  write_ws_xml_col_breaks(ws['!colBreaks'])
+
+
+	if(o.length>2) { o[o.length] = ('</worksheet>'); o[1]=o[1].replace("/>",">"); }
+	return o.join("");
 }
 
 /* [MS-XLS] 2.5.198.37 ; [MS-XLSB] 2.5.97.29 */
