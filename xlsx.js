@@ -4,7 +4,7 @@
 /*global global, exports, module, require:false, process:false, Buffer:false, ArrayBuffer:false */
 var XLSX = {};
 (function make_xlsx(XLSX){
-XLSX.version = '0.8.9';
+XLSX.version = '0.8.11';
 var current_codepage = 1200, current_cptable;
 if(typeof module !== "undefined" && typeof require !== 'undefined') {
 	if(typeof cptable === 'undefined') {
@@ -13857,9 +13857,9 @@ ws['!links'].forEach(function(l) {
 
 	/* smartTags */
 
-  if (ws['!pageSetup'] !== undefined) o[o.length] =  write_ws_xml_pagesetup(ws['!pageSetup'])
-  if (ws['!rowBreaks'] !== undefined) o[o.length] =  write_ws_xml_row_breaks(ws['!rowBreaks'])
-  if (ws['!colBreaks'] !== undefined) o[o.length] =  write_ws_xml_col_breaks(ws['!colBreaks'])
+  if (ws['!pageSetup'] !== undefined) o[o.length] =  write_ws_xml_pagesetup(ws['!pageSetup']);
+  if (ws['!rowBreaks'] !== undefined) o[o.length] =  write_ws_xml_row_breaks(ws['!rowBreaks']);
+  if (ws['!colBreaks'] !== undefined) o[o.length] =  write_ws_xml_col_breaks(ws['!colBreaks']);
 
 
 	if(o.length>2) { o[o.length] = ('</worksheet>'); o[1]=o[1].replace("/>",">"); }
@@ -15240,18 +15240,87 @@ function parse_fills(t, opts) {
       case '</patternFill>':
         break;
 
-      /* 18.8.3 bgColor CT_Color */
-      case '<bgColor':
-        if (!fill.bgColor) fill.bgColor = {};
-        if (y.indexed) fill.bgColor.indexed = parseInt(y.indexed, 10);
-        if (y.theme) fill.bgColor.theme = parseInt(y.theme, 10);
-        if (y.tint) fill.bgColor.tint = parseFloat(y.tint);
-        /* Excel uses ARGB strings */
-        if (y.rgb) fill.bgColor.rgb = y.rgb;//.substring(y.rgb.length - 6);
-        break;
-      case '<bgColor/>':
-      case '</bgColor>':
-        break;
+	return wb;
+}
+
+var WB_XML_ROOT = writextag('workbook', null, {
+	'xmlns': XMLNS.main[0],
+	//'xmlns:mx': XMLNS.mx,
+	//'xmlns:s': XMLNS.main[0],
+	'xmlns:r': XMLNS.r
+});
+
+function safe1904(wb) {
+	/* TODO: store date1904 somewhere else */
+	try { return parsexmlbool(wb.Workbook.WBProps.date1904) ? "true" : "false"; } catch(e) { return "false"; }
+}
+
+function write_wb_xml(wb, opts) {
+	var o = [XML_HEADER];
+	o[o.length] = WB_XML_ROOT;
+	o[o.length] = (writextag('workbookPr', null, {date1904:safe1904(wb)}));
+	o[o.length] = "<sheets>";
+	for(var i = 0; i != wb.SheetNames.length; ++i)
+		o[o.length] = (writextag('sheet',null,{name:wb.SheetNames[i].substr(0,31), sheetId:""+(i+1), "r:id":"rId"+(i+1)}));
+	o[o.length] = "</sheets>";
+
+  var hasPrintHeaders = false;
+  for(var i = 0; i != wb.SheetNames.length; ++i) {
+    var sheetName = wb.SheetNames[i];
+    var sheet = wb.Sheets[sheetName]
+    if (sheet['!printHeader']) {
+      if (sheet['!printHeader'].length !== 2) {
+        throw "!printHeaders must be an array of length 2: "+sheet['!printHeader'];
+
+      }
+      hasPrintHeaders = true;
+    }
+
+  }
+
+  if (hasPrintHeaders) {
+    o[o.length] = '<definedNames>';
+    for(var i = 0; i != wb.SheetNames.length; ++i) {
+      var sheetName = wb.SheetNames[i];
+      var sheet = wb.Sheets[sheetName]
+      if (sheet['!printHeader'])
+        var range = "'" + sheetName + "'!" + sheet['!printHeader'];
+      console.log("!!!!"+range)
+        o[o.length] = (writextag('definedName', range, {
+          "name":"_xlnm.Print_Titles",
+          localSheetId : ''+i
+        }))
+    }
+    o[o.length] = '</definedNames>';
+  }
+
+
+
+//  <definedNames>
+//  <definedName name="_xlnm.Print_Titles" localSheetId="0">Sheet1!$1:$1</definedName>
+//  <definedName name="_xlnm.Print_Titles" localSheetId="1">Sheet2!$1:$2</definedName>
+//  </definedNames>
+
+	if(o.length>2){ o[o.length] = '</workbook>'; o[1]=o[1].replace("/>",">"); }
+	return o.join("");
+}
+/* [MS-XLSB] 2.4.301 BrtBundleSh */
+function parse_BrtBundleSh(data, length) {
+	var z = {};
+	z.hsState = data.read_shift(4); //ST_SheetState
+	z.iTabID = data.read_shift(4);
+	z.strRelID = parse_RelID(data,length-8);
+	z.name = parse_XLWideString(data);
+	return z;
+}
+function write_BrtBundleSh(data, o) {
+	if(!o) o = new_buf(127);
+	o.write_shift(4, data.hsState);
+	o.write_shift(4, data.iTabID);
+	write_RelID(data.strRelID, o);
+	write_XLWideString(data.name.substr(0,31), o);
+	return o;
+}
 
       /* 18.8.19 fgColor CT_Color */
       case '<fgColor':
@@ -22002,11 +22071,9 @@ var XmlNode = (function () {
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&apos;');
 
-
         var $numFmt = XmlNode('numFmt')
             .attr('numFmtId', (++customNumFmtId))
             .attr('formatCode', numFmt);
-
 
         this.$numFmts.append($numFmt);
 

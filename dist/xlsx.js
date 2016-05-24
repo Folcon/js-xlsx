@@ -4,7 +4,7 @@
 /*global global, exports, module, require:false, process:false, Buffer:false, ArrayBuffer:false */
 var XLSX = {};
 (function make_xlsx(XLSX){
-XLSX.version = '0.8.9';
+XLSX.version = '0.8.11';
 var current_codepage = 1200, current_cptable;
 if(typeof module !== "undefined" && typeof require !== 'undefined') {
 	if(typeof cptable === 'undefined') {
@@ -10417,8 +10417,9 @@ function parse_theme_xml(data, opts) {
 	/* 20.1.6.9 theme CT_OfficeStyleSheet */
 	if(!data || data.length === 0) return parse_theme_xml(write_theme());
 
-	var t;
-	var themes = {};
+  if (ws['!pageSetup'] !== undefined) o[o.length] =  write_ws_xml_pagesetup(ws['!pageSetup']);
+  if (ws['!rowBreaks'] !== undefined) o[o.length] =  write_ws_xml_row_breaks(ws['!rowBreaks']);
+  if (ws['!colBreaks'] !== undefined) o[o.length] =  write_ws_xml_col_breaks(ws['!colBreaks']);
 
 	/* themeElements CT_BaseStyles */
 	if(!(t=data.match(themeltregex))) throw new Error('themeElements not found in theme');
@@ -11193,11 +11194,71 @@ function parse_RgceLoc_BIFF2(blob) {
 	return {r:r[0], c:c, cRel:r[1], rRel:r[2]};
 }
 
-/* [MS-XLS] 2.5.198.107, 2.5.47 */
-function parse_RgceElfLoc(blob) {
-	var r = blob.read_shift(2);
-	var c = blob.read_shift(2);
-	return {r:r, c:c & 0xFF, fQuoted:!!(c & 0x4000), cRel:c>>15, rRel:c>>15 };
+function write_wb_xml(wb, opts) {
+	var o = [XML_HEADER];
+	o[o.length] = WB_XML_ROOT;
+	o[o.length] = (writextag('workbookPr', null, {date1904:safe1904(wb)}));
+	o[o.length] = "<sheets>";
+	for(var i = 0; i != wb.SheetNames.length; ++i)
+		o[o.length] = (writextag('sheet',null,{name:wb.SheetNames[i].substr(0,31), sheetId:""+(i+1), "r:id":"rId"+(i+1)}));
+	o[o.length] = "</sheets>";
+
+  var hasPrintHeaders = false;
+  for(var i = 0; i != wb.SheetNames.length; ++i) {
+    var sheetName = wb.SheetNames[i];
+    var sheet = wb.Sheets[sheetName]
+    if (sheet['!printHeader']) {
+      if (sheet['!printHeader'].length !== 2) {
+        throw "!printHeaders must be an array of length 2: "+sheet['!printHeader'];
+
+      }
+      hasPrintHeaders = true;
+    }
+
+  }
+
+  if (hasPrintHeaders) {
+    o[o.length] = '<definedNames>';
+    for(var i = 0; i != wb.SheetNames.length; ++i) {
+      var sheetName = wb.SheetNames[i];
+      var sheet = wb.Sheets[sheetName]
+      if (sheet['!printHeader'])
+        var range = "'" + sheetName + "'!" + sheet['!printHeader'];
+      console.log("!!!!"+range)
+        o[o.length] = (writextag('definedName', range, {
+          "name":"_xlnm.Print_Titles",
+          localSheetId : ''+i
+        }))
+    }
+    o[o.length] = '</definedNames>';
+  }
+
+
+
+//  <definedNames>
+//  <definedName name="_xlnm.Print_Titles" localSheetId="0">Sheet1!$1:$1</definedName>
+//  <definedName name="_xlnm.Print_Titles" localSheetId="1">Sheet2!$1:$2</definedName>
+//  </definedNames>
+
+	if(o.length>2){ o[o.length] = '</workbook>'; o[1]=o[1].replace("/>",">"); }
+	return o.join("");
+}
+/* [MS-XLSB] 2.4.301 BrtBundleSh */
+function parse_BrtBundleSh(data, length) {
+	var z = {};
+	z.hsState = data.read_shift(4); //ST_SheetState
+	z.iTabID = data.read_shift(4);
+	z.strRelID = parse_RelID(data,length-8);
+	z.name = parse_XLWideString(data);
+	return z;
+}
+function write_BrtBundleSh(data, o) {
+	if(!o) o = new_buf(127);
+	o.write_shift(4, data.hsState);
+	o.write_shift(4, data.iTabID);
+	write_RelID(data.strRelID, o);
+	write_XLWideString(data.name.substr(0,31), o);
+	return o;
 }
 
 /* [MS-XLS] 2.5.198.111 ; [MS-XLSB] 2.5.97.92 TODO */
@@ -22443,11 +22504,9 @@ var XmlNode = (function () {
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&apos;');
 
-
         var $numFmt = XmlNode('numFmt')
             .attr('numFmtId', (++customNumFmtId))
             .attr('formatCode', numFmt);
-
 
         this.$numFmts.append($numFmt);
 
