@@ -297,15 +297,11 @@ return function parse_ws_xml_data(sdata/*:string*/, s, opts, guess/*:Range*/, th
           if(isNaN(p.v)) p.v = "" // we don't want NaN if p.v is null
           break;
 				case 's':
-					if(typeof p.v == 'undefined') {
-						if(!opts.sheetStubs) continue;
-						p.t = 'z';
-					} else {
-						sstr = strs[parseInt(p.v, 10)];
-						p.v = sstr.t;
-						p.r = sstr.r;
-						if(opts.cellHTML) p.h = sstr.h;
-					}
+					if (!p.hasOwnProperty('v')) continue;
+					sstr = strs[parseInt(p.v, 10)];
+					p.v = sstr.t;
+					p.r = sstr.r;
+					if(opts.cellHTML) p.h = sstr.h;
 					break;
 				case 'str':
 					p.t = "s";
