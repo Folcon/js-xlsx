@@ -26,8 +26,8 @@ Source: <http://git.io/xlsx>
 
 With [npm](https://www.npmjs.org/package/xlsx):
 
-```sh
-npm install xlsx-style --save
+```bash
+$ npm install xlsx
 ```
 
 In the browser:
@@ -38,8 +38,8 @@ In the browser:
 
 With [bower](http://bower.io/search/?q=js-xlsx):
 
-```sh
-bower install js-xlsx-style#beta
+```bash
+$ bower install js-xlsx
 ```
 
 CDNjs automatically pulls the latest version and makes all versions available at
@@ -173,24 +173,6 @@ The full object format is described later in this README.
 
 This example extracts the value stored in cell A1 from the first worksheet:
 
-```
-var first_sheet_name = workbook.SheetNames[0];
-var address_of_cell = 'A1';
-
-/* Get worksheet */
-var worksheet = workbook.Sheets[first_sheet_name];
-
-/* Find desired cell */
-var desired_cell = worksheet[address_of_cell];
-
-/* Get the value */
-var desired_value = desired_cell.v;
-```
-
-This example iterates through every nonempty of every sheet and dumps values:
-
-This example extracts the value stored in cell A1 from the first worksheet:
-
 ```js
 var first_sheet_name = workbook.SheetNames[0];
 var address_of_cell = 'A1';
@@ -226,7 +208,7 @@ Complete examples:
 Note that older versions of IE does not support HTML5 File API, so the base64
 mode is provided for testing.  On OSX you can get the base64 encoding with:
 
-```sh
+```bash
 $ <target_file.xlsx base64 | pbcopy
 ```
 
@@ -375,16 +357,16 @@ Type `b` is the Boolean type.  `v` is interpreted according to JS truth tables
 
 Type `e` is the Error type. `v` holds the number and `w` holds the common name:
 
-| Value | Error Meaning |
-| ----: | :------------ |
-|  0x00 | #NULL!        |
-|  0x07 | #DIV/0!       |
-|  0x0F | #VALUE!       |
-|  0x17 | #REF!         |
-|  0x1D | #NAME?        |
-|  0x24 | #NUM!         |
-|  0x2A | #N/A          |
-|  0x2B | #GETTING_DATA |
+| Value | Error Meaning  |
+| ----: | :------------- |
+|  0x00 | #NULL!         |
+|  0x07 | #DIV/0!        |
+|  0x0F | #VALUE!        |
+|  0x17 | #REF!          |
+|  0x1D | #NAME?         |
+|  0x24 | #NUM!          |
+|  0x2A | #N/A           |
+|  0x2B | #GETTING\_DATA |
 
 Type `n` is the Number type. This includes all forms of data that Excel stores
 as numbers, such as dates/times and Boolean fields.  Excel exclusively uses data
@@ -469,21 +451,21 @@ standard, XLS parsing stores core properties in both places.  .
 
 The exported `read` and `readFile` functions accept an options argument:
 
-| Option Name | Default | Description |
-| :---------- | ------: | :---------- |
-| cellFormula | true    | Save formulae to the .f field ** |
-| cellHTML    | true    | Parse rich text and save HTML to the .h field |
-| cellNF      | false   | Save number format string to the .z field |
-| cellStyles  | false   | Save style/theme info to the .s field |
-| cellDates   | false   | Store dates as type `d` (default is `n`) ** |
-| sheetStubs  | false   | Create cell objects for stub cells |
-| sheetRows   | 0       | If >0, read the first `sheetRows` rows ** |
-| bookDeps    | false   | If true, parse calculation chains |
-| bookFiles   | false   | If true, add raw files to book object ** |
-| bookProps   | false   | If true, only parse enough to get book metadata ** |
-| bookSheets  | false   | If true, only parse enough to get the sheet names |
-| bookVBA     | false   | If true, expose vbaProject.bin to `vbaraw` field ** |
-| password    | ""      | If defined and file is encrypted, use password ** |
+| Option Name | Default | Description                                          |
+| :---------- | ------: | :--------------------------------------------------- |
+| cellFormula | true    | Save formulae to the .f field **                     |
+| cellHTML    | true    | Parse rich text and save HTML to the .h field        |
+| cellNF      | false   | Save number format string to the .z field            |
+| cellStyles  | false   | Save style/theme info to the .s field                |
+| cellDates   | false   | Store dates as type `d` (default is `n`) **          |
+| sheetStubs  | false   | Create cell objects for stub cells                   |
+| sheetRows   | 0       | If >0, read the first `sheetRows` rows **            |
+| bookDeps    | false   | If true, parse calculation chains                    |
+| bookFiles   | false   | If true, add raw files to book object **             |
+| bookProps   | false   | If true, only parse enough to get book metadata **   |
+| bookSheets  | false   | If true, only parse enough to get the sheet names    |
+| bookVBA     | false   | If true, expose vbaProject.bin to `vbaraw` field **  |
+| password    | ""      | If defined and file is encrypted, use password **    |
 
 - `cellFormula` option only applies to formats that require extra processing to
   parse formulae (XLS/XLSB).
@@ -502,23 +484,17 @@ The exported `read` and `readFile` functions accept an options argument:
 - Currently only XOR encryption is supported.  Unsupported error will be thrown
   for files employing other encryption methods.
 
-The defaults are enumerated in bits/84_defaults.js
+The defaults are enumerated in bits/84\_defaults.js
 
 ## Writing Options
 
 The exported `write` and `writeFile` functions accept an options argument:
 
-| Option Name | Default | Description |
-| :---------- | ------: | :---------- |
-| cellDates   | false   | Store dates as type `d` (default is `n`) |
-| bookSST     | false   | Generate Shared String Table ** |
-| bookType    | 'xlsx'  | Type of Workbook ("xlsx" or "xlsm" or "xlsb") |
-| showGridLines | true | Show gridlines on all pages  |
-| tabSelected | '1' | Initial tab selected |
-| Props       | null | Workbook properties |
-
-
-
+| Option Name | Default | Description                                          |
+| :---------- | ------: | :--------------------------------------------------- |
+| cellDates   | false   | Store dates as type `d` (default is `n`)             |
+| bookSST     | false   | Generate Shared String Table **                      |
+| bookType    | 'xlsx'  | Type of Workbook ("xlsx" or "xlsm" or "xlsb")        |
 
 - `bookSST` is slower and more memory intensive, but has better compatibility
   with older versions of iOS Numbers
@@ -632,7 +608,7 @@ Running `make init` will refresh the `test_files` submodule and get the files.
 [the oss.sheetjs.com repo](https://github.com/SheetJS/SheetJS.github.io) and
 replace the xlsx.js file (then fire up the browser and go to `stress.html`):
 
-```sh
+```bash
 $ cp xlsx.js ../SheetJS.github.io
 $ cd ../SheetJS.github.io
 $ simplehttpserver # or "python -mSimpleHTTPServer" or "serve"
@@ -651,7 +627,7 @@ build script (run `make`) will concatenate the individual bits to produce the
 script.  Before submitting a contribution, ensure that running make will produce
 the xlsx.js file exactly.  The simplest way to test is to move the script:
 
-```sh
+```bash
 $ mv xlsx.js xlsx.new.js
 $ make
 $ diff xlsx.js xlsx.new.js
@@ -702,3 +678,7 @@ Open Document Format for Office Applications Version 1.2 (29 September 2011)
 [![Build Status](https://travis-ci.org/SheetJS/js-xlsx.svg?branch=master)](https://travis-ci.org/SheetJS/js-xlsx)
 
 [![Coverage Status](http://img.shields.io/coveralls/SheetJS/js-xlsx/master.svg)](https://coveralls.io/r/SheetJS/js-xlsx?branch=master)
+
+[![Analytics](https://ga-beacon.appspot.com/UA-36810333-1/SheetJS/js-xlsx?pixel)](https://github.com/SheetJS/js-xlsx)
+
+[![ghit.me](https://ghit.me/badge.svg?repo=sheetjs/js-xlsx)](https://ghit.me/repo/sheetjs/js-xlsx)
