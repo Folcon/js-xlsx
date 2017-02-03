@@ -9,58 +9,58 @@ var dimregex = /"(\w*:\w*)"/;
 var colregex = /<col[^>]*\/>/g;
 /* 18.3 Worksheets */
 function parse_ws_xml(data, opts, rels) {
-  if (!data) return data;
-  /* 18.3.1.99 worksheet CT_Worksheet */
-  var s = {};
+	if(!data) return data;
+	/* 18.3.1.99 worksheet CT_Worksheet */
+	var s = {};
 
-  /* 18.3.1.35 dimension CT_SheetDimension ? */
-  var ridx = data.indexOf("<dimension");
-  if (ridx > 0) {
-    var ref = data.substr(ridx, 50).match(dimregex);
-    if (ref != null) parse_ws_xml_dim(s, ref[1]);
-  }
+	/* 18.3.1.35 dimension CT_SheetDimension ? */
+	var ridx = data.indexOf("<dimension");
+	if(ridx > 0) {
+		var ref = data.substr(ridx,50).match(dimregex);
+		if(ref != null) parse_ws_xml_dim(s, ref[1]);
+	}
 
-  /* 18.3.1.55 mergeCells CT_MergeCells */
-  var mergecells = [];
-  if (data.indexOf("</mergeCells>") !== -1) {
-    var merges = data.match(mergecregex);
-    for (ridx = 0; ridx != merges.length; ++ridx)
-      mergecells[ridx] = safe_decode_range(merges[ridx].substr(merges[ridx].indexOf("\"") + 1));
-  }
+	/* 18.3.1.55 mergeCells CT_MergeCells */
+	var mergecells = [];
+	if(data.indexOf("</mergeCells>")!==-1) {
+		var merges = data.match(mergecregex);
+		if(merges) for(ridx = 0; ridx != merges.length; ++ridx)
+			mergecells[ridx] = safe_decode_range(merges[ridx].substr(merges[ridx].indexOf("\"")+1));
+	}
 
-  /* 18.3.1.17 cols CT_Cols */
-  var columns = [];
-  if (opts.cellStyles && data.indexOf("</cols>") !== -1) {
-    /* 18.3.1.13 col CT_Col */
-    var cols = data.match(colregex);
-    parse_ws_xml_cols(columns, cols);
-  }
+	/* 18.3.1.17 cols CT_Cols */
+	var columns = [];
+	if(opts.cellStyles && data.indexOf("</cols>")!==-1) {
+		/* 18.3.1.13 col CT_Col */
+		var cols = data.match(colregex);
+		parse_ws_xml_cols(columns, cols);
+	}
 
-  var refguess = {s: {r: 1000000, c: 1000000}, e: {r: 0, c: 0}};
+	var refguess = {s: {r:2000000, c:2000000}, e: {r:0, c:0} };
 
-  /* 18.3.1.80 sheetData CT_SheetData ? */
-  var mtch = data.match(sheetdataregex);
-  if (mtch) parse_ws_xml_data(mtch[1], s, opts, refguess);
+	/* 18.3.1.80 sheetData CT_SheetData ? */
+	var mtch=data.match(sheetdataregex);
+	if(mtch) parse_ws_xml_data(mtch[1], s, opts, refguess);
 
-  /* 18.3.1.48 hyperlinks CT_Hyperlinks */
-  if (data.indexOf("</hyperlinks>") !== -1) parse_ws_xml_hlinks(s, data.match(hlinkregex), rels);
+	/* 18.3.1.48 hyperlinks CT_Hyperlinks */
+	if(data.indexOf("</hyperlinks>")!==-1) parse_ws_xml_hlinks(s, data.match(hlinkregex), rels);
 
-  if (!s["!ref"] && refguess.e.c >= refguess.s.c && refguess.e.r >= refguess.s.r) s["!ref"] = encode_range(refguess);
-  if (opts.sheetRows > 0 && s["!ref"]) {
-    var tmpref = safe_decode_range(s["!ref"]);
-    if (opts.sheetRows < +tmpref.e.r) {
-      tmpref.e.r = opts.sheetRows - 1;
-      if (tmpref.e.r > refguess.e.r) tmpref.e.r = refguess.e.r;
-      if (tmpref.e.r < tmpref.s.r) tmpref.s.r = tmpref.e.r;
-      if (tmpref.e.c > refguess.e.c) tmpref.e.c = refguess.e.c;
-      if (tmpref.e.c < tmpref.s.c) tmpref.s.c = tmpref.e.c;
-      s["!fullref"] = s["!ref"];
-      s["!ref"] = encode_range(tmpref);
-    }
-  }
-  if (mergecells.length > 0) s["!merges"] = mergecells;
-  if (columns.length > 0) s["!cols"] = columns;
-  return s;
+	if(!s["!ref"] && refguess.e.c >= refguess.s.c && refguess.e.r >= refguess.s.r) s["!ref"] = encode_range(refguess);
+	if(opts.sheetRows > 0 && s["!ref"]) {
+		var tmpref = safe_decode_range(s["!ref"]);
+		if(opts.sheetRows < +tmpref.e.r) {
+			tmpref.e.r = opts.sheetRows - 1;
+			if(tmpref.e.r > refguess.e.r) tmpref.e.r = refguess.e.r;
+			if(tmpref.e.r < tmpref.s.r) tmpref.s.r = tmpref.e.r;
+			if(tmpref.e.c > refguess.e.c) tmpref.e.c = refguess.e.c;
+			if(tmpref.e.c < tmpref.s.c) tmpref.s.c = tmpref.e.c;
+			s["!fullref"] = s["!ref"];
+			s["!ref"] = encode_range(tmpref);
+		}
+	}
+	if(mergecells.length > 0) s["!merges"] = mergecells;
+	if(columns.length > 0) s["!cols"] = columns;
+	return s;
 }
 
 function write_ws_xml_merges(merges) {
@@ -346,6 +346,7 @@ var WS_XML_ROOT = writextag('worksheet', null, {
   'xmlns:r': XMLNS.r
 });
 
+<<<<<<< HEAD
 function write_ws_xml(idx, opts, wb) {
   var o = [XML_HEADER, WS_XML_ROOT];
   var s = wb.SheetNames[idx], sidx = 0, rdata = "";
@@ -430,4 +431,26 @@ function write_ws_xml_col_breaks(breaks) {
     brk.push(writextag('brk', null, {id: thisBreak, max: nextBreak, man: '1'}))
   }
   return writextag('colBreaks', brk.join(' '), {count: brk.length, manualBreakCount: brk.length})
+=======
+function write_ws_xml(idx/*:number*/, opts, wb)/*:string*/ {
+	var o = [XML_HEADER, WS_XML_ROOT];
+	var s = wb.SheetNames[idx], sidx = 0, rdata = "";
+	var ws = wb.Sheets[s];
+	if(ws === undefined) ws = {};
+	var ref = ws['!ref']; if(ref === undefined) ref = 'A1';
+	o[o.length] = (writextag('dimension', null, {'ref': ref}));
+
+	if(ws['!cols'] !== undefined && ws['!cols'].length > 0) o[o.length] = (write_ws_xml_cols(ws, ws['!cols']));
+	o[sidx = o.length] = '<sheetData/>';
+	if(ws['!ref'] !== undefined) {
+		rdata = write_ws_xml_data(ws, opts, idx, wb);
+		if(rdata.length > 0) o[o.length] = (rdata);
+	}
+	if(o.length>sidx+1) { o[o.length] = ('</sheetData>'); o[sidx]=o[sidx].replace("/>",">"); }
+
+	if(ws['!merges'] !== undefined && ws['!merges'].length > 0) o[o.length] = (write_ws_xml_merges(ws['!merges']));
+
+	if(o.length>2) { o[o.length] = ('</worksheet>'); o[1]=o[1].replace("/>",">"); }
+	return o.join("");
+>>>>>>> 86d6a09... version bump 0.8.2: ODS and cleanup
 }
