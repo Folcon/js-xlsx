@@ -1,9 +1,9 @@
 function getdatastr(data)/*:?string*/ {
 	if(!data) return null;
-	if(data.data) return debom_xml(data.data);
-	if(data.asNodeBuffer && has_buf) return debom_xml(data.asNodeBuffer().toString('binary'));
-	if(data.asBinary) return debom_xml(data.asBinary());
-	if(data._data && data._data.getContent) return debom_xml(cc2str(Array.prototype.slice.call(data._data.getContent(),0)));
+	if(data.data) return debom(data.data);
+	if(data.asNodeBuffer && has_buf) return debom(data.asNodeBuffer().toString('binary'));
+	if(data.asBinary) return debom(data.asBinary());
+	if(data._data && data._data.getContent) return debom(cc2str(Array.prototype.slice.call(data._data.getContent(),0)));
 	return null;
 }
 
@@ -21,16 +21,14 @@ function getdatabin(data) {
 
 function getdata(data) { return (data && data.name.slice(-4) === ".bin") ? getdatabin(data) : getdatastr(data); }
 
+/* Part 2 Section 10.1.2 "Mapping Content Types" Names are case-insensitive */
 function safegetzipfile(zip, file/*:string*/) {
-	var f = file; if(zip.files[f]) return zip.files[f];
-
-	var lowerCaseFiles = {};
-	for (var key in zip.files) {
-		lowerCaseFiles[key.toLowerCase()] = zip.files[key];
+	var k = keys(zip.files);
+	var f = file.toLowerCase(), g = f.replace(/\//g,'\\');
+	for(var i=0; i<k.length; ++i) {
+		var n = k[i].toLowerCase();
+		if(f == n || g == n) return zip.files[k[i]];
 	}
-
-	f = file.toLowerCase(); if(lowerCaseFiles[f]) return lowerCaseFiles[f];
-	f = f.replace(/\//g,'\\'); if(lowerCaseFiles[f]) return lowerCaseFiles[f];
 	return null;
 }
 
