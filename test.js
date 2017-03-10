@@ -226,9 +226,11 @@ describe('should parse test files', function() {
 
 describe('parse options', function() {
 	var html_cell_types = ['s'];
-	before(function() {
+	var bef = (function() {
 		X = require(modp);
 	});
+	if(typeof before != 'undefined') before(bef);
+	else it('before', bef);
 	describe('cell', function() {
 		it('XLSX should generate HTML by default', function() {
 			var wb = X.readFile(paths.cstxlsx);
@@ -511,14 +513,22 @@ describe('input formats', function() {
 
 describe('output formats', function() {
 	var wb1, wb2, wb3, wb4;
-	before(function() {
+	var bef = (function() {
 		X = require(modp);
 		wb1 = X.readFile(paths.cpxlsx);
 		wb2 = X.readFile(paths.cpxlsb);
 		wb3 = X.readFile(paths.cpxls);
 		wb4 = X.readFile(paths.cpxml);
 	});
+	if(typeof before != 'undefined') before(bef);
+	else it('before', bef);
 	it('should write binary strings', function() {
+		if(!wb1) {
+			wb1 = X.readFile(paths.cpxlsx);
+			wb2 = X.readFile(paths.cpxlsb);
+			wb3 = X.readFile(paths.cpxls);
+			wb4 = X.readFile(paths.cpxml);
+		}
 		X.write(wb1, {type: 'binary'});
 		X.write(wb2, {type: 'binary'});
 		X.write(wb3, {type: 'binary'});
@@ -623,12 +633,14 @@ describe('parse features', function() {
 
 	describe('should parse core properties and custom properties', function() {
 		var wb1, wb2;
-		before(function() {
+		var bef = (function() {
 			wb1 = X.readFile(paths.cpxlsx);
 			wb2 = X.readFile(paths.cpxlsb);
 			wb3 = X.readFile(paths.cpxls);
 			wb4 = X.readFile(paths.cpxml);
 		});
+		if(typeof before != 'undefined') before(bef);
+		else it('before', bef);
 
 		it(N1 + ' should parse core properties', function() { coreprop(wb1); });
 		it(N2 + ' should parse core properties', function() { coreprop(wb2); });
@@ -678,8 +690,8 @@ describe('parse features', function() {
 	});
 
 	describe('merge cells',function() {
-		var wb1, wb2;
-		before(function() {
+		var wb1, wb2, wb3, wb4, wb5;
+		var bef = (function() {
 			X = require(modp);
 			wb1 = X.readFile(paths.mcxlsx);
 			wb2 = X.readFile(paths.mcxlsb);
@@ -687,6 +699,8 @@ describe('parse features', function() {
 			wb4 = X.readFile(paths.mcxls);
 			wb5 = X.readFile(paths.mcxml);
 		});
+		if(typeof before != 'undefined') before(bef);
+		else it('before', bef);
 		it('should have !merges', function() {
 			assert(wb1.Sheets.Merge['!merges']);
 			assert(wb2.Sheets.Merge['!merges']);
@@ -702,14 +716,16 @@ describe('parse features', function() {
 	});
 
 	describe('should find hyperlinks', function() {
-		var wb1, wb2;
-		before(function() {
+		var wb1, wb2, wb3, wb4;
+		var bef = (function() {
 			X = require(modp);
 			wb1 = X.readFile(paths.hlxlsx);
 			wb2 = X.readFile(paths.hlxlsb);
 			wb3 = X.readFile(paths.hlxls);
 			wb4 = X.readFile(paths.hlxml);
 		});
+		if(typeof before != 'undefined') before(bef);
+		else it('before', bef);
 
 		function hlink(wb) {
 			var ws = wb.Sheets.Sheet1;
@@ -748,24 +764,52 @@ describe('parse features', function() {
 		});
 	});
 
-  describe('should correctly handle styles', function() {
-    var wsxls, wsxlsx, rn, rn2;
-    before(function() {
-      wsxls=X.readFile(paths.cssxls, {cellStyles:true,WTF:1}).Sheets.Sheet1;
-      wsxlsx=X.readFile(paths.cssxlsx, {cellStyles:true,WTF:1}).Sheets.Sheet1;
-      rn = function(range) {
-        var r = X.utils.decode_range(range);
-        var out = [];
-        for(var R = r.s.r; R <= r.e.r; ++R) for(var C = r.s.c; C <= r.e.c; ++C)
-          out.push(X.utils.encode_cell({c:C,r:R}));
-        return out;
-      };
-      rn2 = function(r) { return [].concat.apply([], r.split(",").map(rn)); };
-    });
-    var ranges = [
-      'A1:D1,F1:G1', 'A2:D2,F2:G2', /* rows */
-      'A3:A10', 'B3:B10', 'E1:E10', 'F6:F8', /* cols */
-      'H1:J4', 'H10' /* blocks */
+	describe('should correctly handle styles', function() {
+		var wsxls, wsxlsx, rn, rn2;
+		var bef = (function() {
+			wsxls=X.readFile(paths.cssxls, {cellStyles:true,WTF:1}).Sheets.Sheet1;
+			wsxlsx=X.readFile(paths.cssxlsx, {cellStyles:true,WTF:1}).Sheets.Sheet1;
+			rn = function(range) {
+				var r = X.utils.decode_range(range);
+				var out = [];
+				for(var R = r.s.r; R <= r.e.r; ++R) for(var C = r.s.c; C <= r.e.c; ++C)
+					out.push(X.utils.encode_cell({c:C,r:R}));
+				return out;
+			};
+			rn2 = function(r) { return [].concat.apply([], r.split(",").map(rn)); };
+		});
+		if(typeof before != 'undefined') before(bef);
+		else it('before', bef);
+		var ranges = [
+			'A1:D1,F1:G1', 'A2:D2,F2:G2', /* rows */
+			'A3:A10', 'B3:B10', 'E1:E10', 'F6:F8', /* cols */
+			'H1:J4', 'H10' /* blocks */
+		];
+		var exp = [
+  { patternType: 'darkHorizontal',
+    fgColor: { theme: 9, raw_rgb: 'F79646' },
+    bgColor: { theme: 5, raw_rgb: 'C0504D' } },
+  { patternType: 'darkUp',
+    fgColor: { theme: 3, raw_rgb: 'EEECE1' },
+    bgColor: { theme: 7, raw_rgb: '8064A2' } },
+  { patternType: 'darkGray',
+    fgColor: { theme: 3, raw_rgb: 'EEECE1' },
+    bgColor: { theme: 1, raw_rgb: 'FFFFFF' } },
+  { patternType: 'lightGray',
+    fgColor: { theme: 6, raw_rgb: '9BBB59' },
+    bgColor: { theme: 2, raw_rgb: '1F497D' } },
+  { patternType: 'lightDown',
+    fgColor: { theme: 4, raw_rgb: '4F81BD' },
+    bgColor: { theme: 7, raw_rgb: '8064A2' } },
+  { patternType: 'lightGrid',
+    fgColor: { theme: 6, raw_rgb: '9BBB59' },
+    bgColor: { theme: 9, raw_rgb: 'F79646' } },
+  { patternType: 'lightGrid',
+    fgColor: { theme: 4, raw_rgb: '4F81BD' },
+    bgColor: { theme: 2, raw_rgb: '1F497D' } },
+  { patternType: 'lightVertical',
+    fgColor: { theme: 3, raw_rgb: 'EEECE1' },
+    bgColor: { theme: 7, raw_rgb: '8064A2' } }
     ];
 
     var exp = [
@@ -836,12 +880,14 @@ function seq(end, start) {
 }
 
 describe('roundtrip features', function() {
-	before(function() {
+	var bef = (function() {
 		X = require(modp);
 	});
+	if(typeof before != 'undefined') before(bef);
+	else it('before', bef);
 	describe('should parse core properties and custom properties', function() {
 		var wb1, wb2, base = './tmp/cp';
-		before(function() {
+		var bef = (function() {
 			wb1 = X.readFile(paths.cpxlsx);
 			wb2 = X.readFile(paths.cpxlsb);
 			fullex.forEach(function(p) {
@@ -849,6 +895,8 @@ describe('roundtrip features', function() {
 				X.writeFile(wb2, base + '.xlsb' + p);
 			});
 		});
+		if(typeof before != 'undefined') before(bef);
+		else it('before', bef);
 		fullex.forEach(function(p) { ['.xlsm','.xlsb'].forEach(function(q) {
 			it(q + p + ' should roundtrip core and custom properties', function() {
 				var wb = X.readFile(base + q + p);
@@ -997,7 +1045,7 @@ describe('json output', function() {
 		}
 	}
 	var data, ws;
-	before(function() {
+	var bef = (function() {
 		data = [
 			[1,2,3],
 			[true, false, null, "sheetjs"],
@@ -1006,6 +1054,8 @@ describe('json output', function() {
 		];
 		ws = sheet_from_array_of_arrays(data);
 	});
+	if(typeof before != 'undefined') before(bef);
+	else it('before', bef);
 	it('should use first-row headers and full sheet by default', function() {
 		var json = X.utils.sheet_to_json(ws);
 		assert.equal(json.length, data.length - 1);
@@ -1061,7 +1111,7 @@ describe('json output', function() {
 
 describe('js -> file -> js', function() {
 	var data, ws, wb, BIN="binary";
-	before(function() {
+	var bef = (function() {
 		data = [
 			[1,2,3],
 			[true, false, null, "sheetjs"],
@@ -1071,6 +1121,8 @@ describe('js -> file -> js', function() {
 		ws = sheet_from_array_of_arrays(data);
 		wb = { SheetNames: ['Sheet1'], Sheets: {Sheet1: ws} };
 	});
+	if(typeof before != 'undefined') before(bef);
+	else it('before', bef);
 	function eqcell(wb1, wb2, s, a) {
 		assert.equal(wb1.Sheets[s][a].v, wb2.Sheets[s][a].v);
 		assert.equal(wb1.Sheets[s][a].t, wb2.Sheets[s][a].t);
