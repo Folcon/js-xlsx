@@ -82,26 +82,26 @@ function write_ws_xml_pagesetup(setup) {
 
 
 function parse_ws_xml_hlinks(s, data, rels) {
-  for (var i = 0; i != data.length; ++i) {
-    var val = parsexmltag(data[i], true);
-    if (!val.ref) return;
-    var rel = rels ? rels['!id'][val.id] : null;
-    if (rel) {
-      val.Target = rel.Target;
-      if (val.location) val.Target += "#" + val.location;
-      val.Rel = rel;
-    } else {
-      val.Target = val.location;
-      rel = {Target: val.location, TargetMode: 'Internal'};
-      val.Rel = rel;
-    }
-    var rng = safe_decode_range(val.ref);
-    for (var R = rng.s.r; R <= rng.e.r; ++R) for (var C = rng.s.c; C <= rng.e.c; ++C) {
-      var addr = encode_cell({c: C, r: R});
-      if (!s[addr]) s[addr] = {t: "stub", v: undefined};
-      s[addr].l = val;
-    }
-  }
+	for(var i = 0; i != data.length; ++i) {
+		var val = parsexmltag(data[i], true);
+		if(!val.ref) return;
+		var rel = rels ? rels['!id'][val.id] : null;
+		if(rel) {
+			val.Target = rel.Target;
+			if(val.location) val.Target += "#"+val.location;
+			val.Rel = rel;
+		} else {
+			val.Target = val.location;
+			rel = {Target: val.location, TargetMode: 'Internal'};
+			val.Rel = rel;
+		}
+		var rng = safe_decode_range(val.ref);
+		for(var R=rng.s.r;R<=rng.e.r;++R) for(var C=rng.s.c;C<=rng.e.c;++C) {
+			var addr = encode_cell({c:C,r:R});
+			if(!s[addr]) s[addr] = {t:"z",v:undefined};
+			s[addr].l = val;
+		}
+	}
 }
 
 function parse_ws_xml_cols(columns, cols) {
@@ -141,7 +141,7 @@ function write_ws_xml_cols(ws, cols)/*:string*/ {
 }
 
 function write_ws_xml_cell(cell, ref, ws, opts, idx, wb) {
-	if(cell.v === undefined) return "";
+	if(cell.v === undefined || cell.t === 'z') return "";
 	var vv = "";
 	var oldt = cell.t, oldv = cell.v;
 	switch(cell.t) {
@@ -254,7 +254,7 @@ return function parse_ws_xml_data(sdata, s, opts, guess) {
 			/* SCHEMA IS ACTUALLY INCORRECT HERE.  IF A CELL HAS NO T, EMIT "" */
 			if(tag.t === undefined && p.v === undefined) {
 				if(!opts.sheetStubs) continue;
-				p.t = "stub";
+				p.t = "z";
 			}
 			else p.t = tag.t || "n";
 			if(guess.s.c > idx) guess.s.c = idx;
@@ -266,7 +266,7 @@ return function parse_ws_xml_data(sdata, s, opts, guess) {
 					sstr = strs[parseInt(p.v, 10)];
 					if(typeof p.v == 'undefined') {
 						if(!opts.sheetStubs) continue;
-						p.t = "stub";
+						p.t = 'z';
 					}
 					p.v = sstr.t;
 					p.r = sstr.r;
