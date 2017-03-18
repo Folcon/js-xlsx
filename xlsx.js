@@ -4621,7 +4621,6 @@ var parse_rs = (function parse_rs_factory() {
 					if(y[0].charCodeAt(1) !== 47) throw 'Unrecognized rich format ' + y[0];
 			}
 		}
-		/* TODO: These should be generated styles, not inline */
 		var style = [];
 		if(font.b) style.push("font-weight: bold;");
 		if(font.i) style.push("font-style: italic;");
@@ -5028,81 +5027,51 @@ var XLMLPatternTypeMap = {
 	"ThinHorzCross": "lightGrid"
 };
 
-var styles = {}; // shared styles
-
-var themes = {}; // shared themes
-
 /* 18.8.21 fills CT_Fills */
-function parse_fills(t, opts) {
-  styles.Fills = [];
-  var fill = {};
-  t[0].match(tagregex).forEach(function (x) {
-    var y = parsexmltag(x);
-    switch (y[0]) {
-      case '<fills':
-      case '<fills>':
-      case '</fills>':
-        break;
+function parse_fills(t, styles, opts) {
+	styles.Fills = [];
+	var fill = {};
+	t[0].match(tagregex).forEach(function(x) {
+		var y = parsexmltag(x);
+		switch(y[0]) {
+			case '<fills': case '<fills>': case '</fills>': break;
 
-      /* 18.8.20 fill CT_Fill */
-      case '<fill>':
-        break;
-      case '</fill>':
-        styles.Fills.push(fill);
-        fill = {};
-        break;
+			/* 18.8.20 fill CT_Fill */
+			case '<fill>': break;
+			case '</fill>': styles.Fills.push(fill); fill = {}; break;
 
-      /* 18.8.32 patternFill CT_PatternFill */
-      case '<patternFill':
-        if (y.patternType) fill.patternType = y.patternType;
-        break;
-      case '<patternFill/>':
-      case '</patternFill>':
-        break;
+			/* 18.8.32 patternFill CT_PatternFill */
+			case '<patternFill':
+			case '<patternFill>':
+				if(y.patternType) fill.patternType = y.patternType;
+				break;
+			case '<patternFill/>': case '</patternFill>': break;
 
-      /* 18.8.3 bgColor CT_Color */
-      case '<bgColor':
-        if (!fill.bgColor) fill.bgColor = {};
-        if (y.indexed) fill.bgColor.indexed = parseInt(y.indexed, 10);
-        if (y.theme) fill.bgColor.theme = parseInt(y.theme, 10);
-        if (y.tint) fill.bgColor.tint = parseFloat(y.tint);
+			/* 18.8.3 bgColor CT_Color */
+			case '<bgColor':
+				if(!fill.bgColor) fill.bgColor = {};
+				if(y.indexed) fill.bgColor.indexed = parseInt(y.indexed, 10);
+				if(y.theme) fill.bgColor.theme = parseInt(y.theme, 10);
+				if(y.tint) fill.bgColor.tint = parseFloat(y.tint);
+				/* Excel uses ARGB strings */
+				if(y.rgb) fill.bgColor.rgb = y.rgb.substring(y.rgb.length - 6);
+				break;
+			case '<bgColor/>': case '</bgColor>': break;
 
+			/* 18.8.19 fgColor CT_Color */
+			case '<fgColor':
+				if(!fill.fgColor) fill.fgColor = {};
+				if(y.theme) fill.fgColor.theme = parseInt(y.theme, 10);
+				if(y.tint) fill.fgColor.tint = parseFloat(y.tint);
+				/* Excel uses ARGB strings */
+				if(y.rgb) fill.fgColor.rgb = y.rgb.substring(y.rgb.length - 6);
+				break;
+			case '<fgColor/>': case '</fgColor>': break;
 
-        if (y.theme && themes.themeElements && themes.themeElements.clrScheme) {
-          fill.bgColor.rgb = rgb_tint(themes.themeElements.clrScheme[fill.bgColor.theme].rgb, fill.bgColor.tint || 0);
-          if (opts.WTF) fill.bgColor.raw_rgb = rgb_tint(themes.themeElements.clrScheme[fill.bgColor.theme].rgb,0);
-        }
-        /* Excel uses ARGB strings */
-        if (y.rgb) fill.bgColor.rgb = y.rgb;//.substring(y.rgb.length - 6);
-        break;
-      case '<bgColor/>':
-      case '</bgColor>':
-        break;
-
-      /* 18.8.19 fgColor CT_Color */
-      case '<fgColor':
-        if (!fill.fgColor) fill.fgColor = {};
-        if (y.theme) fill.fgColor.theme = parseInt(y.theme, 10);
-        if (y.tint) fill.fgColor.tint = parseFloat(y.tint);
-
-        if (y.theme && themes.themeElements && themes.themeElements.clrScheme) {
-          fill.fgColor.rgb = rgb_tint(themes.themeElements.clrScheme[fill.fgColor.theme].rgb, fill.fgColor.tint || 0);
-          if (opts.WTF) fill.fgColor.raw_rgb = rgb_tint(themes.themeElements.clrScheme[fill.fgColor.theme].rgb,0);
-        }
-
-        /* Excel uses ARGB strings */
-        if (y.rgb) fill.fgColor.rgb = y.rgb;//.substring(y.rgb.length - 6);
-        break;
-      case '<fgColor/>':
-      case '</fgColor>':
-        break;
-
-      default:
-        if (opts.WTF) throw 'unrecognized ' + y[0] + ' in fills';
-    }
-  });
+			default: if(opts && opts.WTF) throw new Error('unrecognized ' + y[0] + ' in fills');
+		}
+	});
 }
-
 function parse_fonts(t, opts) {
   styles.Fonts = [];
   var font = {};
@@ -5252,11 +5221,10 @@ function parse_borders(t, opts) {
         break;
     }
   });
-
 }
 
 /* 18.8.31 numFmts CT_NumFmts */
-function parse_numFmts(t, opts) {
+function parse_numFmts(t, styles, opts) {
 	styles.NumberFmt = [];
 	var k/*Array<number>*/ = (keys(SSF._table));
 	for(var i=0; i < k.length; ++i) styles.NumberFmt[k[i]] = SSF._table[k[i]];
@@ -5294,7 +5262,7 @@ function write_numFmts(NF, opts) {
 }
 
 /* 18.8.10 cellXfs CT_CellXfs */
-function parse_cellXfs(t, opts) {
+function parse_cellXfs(t, styles, opts) {
 	styles.CellXf = [];
 	t[0].match(tagregex).forEach(function(x) {
 		var y = parsexmltag(x);
@@ -5341,25 +5309,26 @@ var parse_sty_xml = (function make_pstyx() {
   var bordersRegex = /<borders([^>]*)>.*<\/borders>/;
 
 return function parse_sty_xml(data, opts) {
+	var styles = {};
 	if(!data) return styles;
 	/* 18.8.39 styleSheet CT_Stylesheet */
 	var t;
 
-    /* numFmts CT_NumFmts ? */
-    if ((t = data.match(numFmtRegex))) parse_numFmts(t, opts);
+	/* numFmts CT_NumFmts ? */
+	if((t=data.match(numFmtRegex))) parse_numFmts(t, styles, opts);
 
     /* fonts CT_Fonts ? */
     if ((t = data.match(/<fonts([^>]*)>.*<\/fonts>/))) parse_fonts(t, opts)
 
-    /* fills CT_Fills */
-    if ((t = data.match(fillsRegex))) parse_fills(t, opts);
+	/* fills CT_Fills */
+	if((t=data.match(fillsRegex))) parse_fills(t, styles, opts);
 
     /* borders CT_Borders ? */
     if ((t = data.match(bordersRegex))) parse_borders(t, opts);
     /* cellStyleXfs CT_CellStyleXfs ? */
 
-    /* cellXfs CT_CellXfs ? */
-    if ((t = data.match(cellXfRegex))) parse_cellXfs(t, opts);
+	/* cellXfs CT_CellXfs ? */
+	if((t=data.match(cellXfRegex))) parse_cellXfs(t, styles, opts);
 
     /* dxfs CT_Dxfs ? */
     /* tableStyles CT_TableStyles ? */
@@ -5444,6 +5413,7 @@ function parse_BrtXF(data, length) {
 
 /* [MS-XLSB] 2.1.7.50 Styles */
 function parse_sty_bin(data, opts) {
+	var styles = {};
 	styles.NumberFmt = ([]);
 	for(var y in SSF._table) styles.NumberFmt[y] = SSF._table[y];
 
@@ -5536,7 +5506,7 @@ function write_sty_bin(data, opts) {
 RELS.THEME = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme";
 
 /* 20.1.6.2 clrScheme CT_ColorScheme */
-function parse_clrScheme(t, opts) {
+function parse_clrScheme(t, themes, opts) {
 	themes.themeElements.clrScheme = [];
 	var color = {};
 	(t[0].match(tagregex)||[]).forEach(function(x) {
@@ -5594,23 +5564,23 @@ function parse_clrScheme(t, opts) {
 				}
 				break;
 
-			default: if(opts.WTF) throw 'unrecognized ' + y[0] + ' in clrScheme';
+			default: if(opts && opts.WTF) throw new Error('Unrecognized ' + y[0] + ' in clrScheme');
 		}
 	});
 }
 
 /* 20.1.4.1.18 fontScheme CT_FontScheme */
-function parse_fontScheme(t, opts) { }
+function parse_fontScheme(t, themes, opts) { }
 
 /* 20.1.4.1.15 fmtScheme CT_StyleMatrix */
-function parse_fmtScheme(t, opts) { }
+function parse_fmtScheme(t, themes, opts) { }
 
 var clrsregex = /<a:clrScheme([^>]*)>[^\u2603]*<\/a:clrScheme>/;
 var fntsregex = /<a:fontScheme([^>]*)>[^\u2603]*<\/a:fontScheme>/;
 var fmtsregex = /<a:fmtScheme([^>]*)>[^\u2603]*<\/a:fmtScheme>/;
 
 /* 20.1.6.10 themeElements CT_BaseStyles */
-function parse_themeElements(data, opts) {
+function parse_themeElements(data, themes, opts) {
 	themes.themeElements = {};
 
 	var t;
@@ -5624,7 +5594,7 @@ function parse_themeElements(data, opts) {
 		['fmtScheme', fmtsregex, parse_fmtScheme]
 	].forEach(function(m) {
 		if(!(t=data.match(m[1]))) throw new Error(m[0] + ' not found in themeElements');
-		m[2](t, opts);
+		m[2](t, themes, opts);
 	});
 }
 
@@ -5633,18 +5603,19 @@ var themeltregex = /<a:themeElements([^>]*)>[^\u2603]*<\/a:themeElements>/;
 /* 14.2.7 Theme Part */
 function parse_theme_xml(data, opts) {
 	/* 20.1.6.9 theme CT_OfficeStyleSheet */
-	if(!data || data.length === 0) return themes;
+	if(!data || data.length === 0) return parse_theme_xml(write_theme());
 
 	var t;
+	var themes = {};
 
 	/* themeElements CT_BaseStyles */
 	if(!(t=data.match(themeltregex))) throw 'themeElements not found in theme';
-	parse_themeElements(t[0], opts);
+	parse_themeElements(t[0], themes, opts);
 
 	return themes;
 }
 
-function write_theme() {
+function write_theme(Themes, opts) {
 	var o = [XML_HEADER];
 	o[o.length] = '<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Office Theme">';
 	o[o.length] =  '<a:themeElements>';
@@ -5799,22 +5770,22 @@ function write_theme() {
 	o[o.length] =     '</a:gradFill>';
 	o[o.length] =    '</a:bgFillStyleLst>';
 	o[o.length] =   '</a:fmtScheme>';
-
 	o[o.length] =  '</a:themeElements>';
+
 	o[o.length] =  '<a:objectDefaults>';
 	o[o.length] =   '<a:spDef>';
 	o[o.length] =    '<a:spPr/><a:bodyPr/><a:lstStyle/><a:style><a:lnRef idx="1"><a:schemeClr val="accent1"/></a:lnRef><a:fillRef idx="3"><a:schemeClr val="accent1"/></a:fillRef><a:effectRef idx="2"><a:schemeClr val="accent1"/></a:effectRef><a:fontRef idx="minor"><a:schemeClr val="lt1"/></a:fontRef></a:style>';
 	o[o.length] =   '</a:spDef>';
 	o[o.length] =   '<a:lnDef>';
 	o[o.length] =    '<a:spPr/><a:bodyPr/><a:lstStyle/><a:style><a:lnRef idx="2"><a:schemeClr val="accent1"/></a:lnRef><a:fillRef idx="0"><a:schemeClr val="accent1"/></a:fillRef><a:effectRef idx="1"><a:schemeClr val="accent1"/></a:effectRef><a:fontRef idx="minor"><a:schemeClr val="tx1"/></a:fontRef></a:style>';
-	o[o.length] =     '</a:lnDef>';
+	o[o.length] =   '</a:lnDef>';
 	o[o.length] =  '</a:objectDefaults>';
 	o[o.length] =  '<a:extraClrSchemeLst/>';
 	o[o.length] = '</a:theme>';
 	return o.join("");
 }
 /* [MS-XLS] 2.4.326 TODO: payload is a zip file */
-function parse_Theme(blob, length) {
+function parse_Theme(blob, length, opts) {
 	var dwThemeVersion = blob.read_shift(4);
 	if(dwThemeVersion === 124226) return;
 	blob.l += length-4;
@@ -8437,7 +8408,7 @@ function get_cell_style_csf(cellXf) {
   return null;
 }
 
-function safe_format(p, fmtid, fillid, opts) {
+function safe_format(p, fmtid, fillid, opts, themes, styles) {
 	if(p.t === 'z') return;
 	if(p.t === 'd' && typeof p.v === 'string') p.v = new Date(p.v);
 	try {
@@ -8470,7 +8441,7 @@ var hlinkregex = /<(?:\w*:)?hyperlink[^>]*\/>/g;
 var dimregex = /"(\w*:\w*)"/;
 var colregex = /<(?:\w*:)?col[^>]*\/>/g;
 /* 18.3 Worksheets */
-function parse_ws_xml(data, opts, rels) {
+function parse_ws_xml(data, opts, rels, wb, themes, styles) {
 	if(!data) return data;
 	/* 18.3.1.99 worksheet CT_Worksheet */
 	var s = ({});
@@ -8501,7 +8472,7 @@ function parse_ws_xml(data, opts, rels) {
 
 	/* 18.3.1.80 sheetData CT_SheetData ? */
 	var mtch=data.match(sheetdataregex);
-	if(mtch) parse_ws_xml_data(mtch[1], s, opts, refguess);
+	if(mtch) parse_ws_xml_data(mtch[1], s, opts, refguess, themes, styles);
 
 	/* 18.3.1.48 hyperlinks CT_Hyperlinks */
 	var hlink = data.match(hlinkregex);
@@ -8650,7 +8621,7 @@ var parse_ws_xml_data = (function parse_ws_xml_data_factory() {
 	var refregex = /ref=["']([^"']*)["']/;
 	var match_v = matchtag("v"), match_f = matchtag("f");
 
-return function parse_ws_xml_data(sdata, s, opts, guess) {
+return function parse_ws_xml_data(sdata, s, opts, guess, themes, styles) {
 	var ri = 0, x = "", cells = [], cref = [], idx = 0, i=0, cc=0, d="", p;
 	var tag, tagr = 0, tagc = 0;
 	var sstr, ftag;
@@ -8765,7 +8736,7 @@ return function parse_ws_xml_data(sdata, s, opts, guess) {
 					if(opts.cellStyles && cf.fillId != null) fillid = cf.fillId;
 				}
 			}
-			safe_format(p, fmtid, fillid, opts);
+			safe_format(p, fmtid, fillid, opts, themes, styles);
 			s[tag.r] = p;
 		}
 	}
@@ -9135,7 +9106,7 @@ function parse_BrtShrFmla(data, length, opts) {
 }
 
 /* [MS-XLSB] 2.1.7.61 Worksheet */
-function parse_ws_bin(data, opts, rels, wb) {
+function parse_ws_bin(data, opts, rels, wb, themes, styles) {
 	if(!data) return data;
 	if(!rels) rels = {'!id':{}};
 	var s = {};
@@ -9190,7 +9161,7 @@ function parse_ws_bin(data, opts, rels, wb) {
 					case 'e': p.v = val[1]; p.w = BErr[p.v]; break;
 					case 'str': p.t = 's'; p.v = utf8read(val[1]); break;
 				}
-				if((cf = styles.CellXf[val[0].iStyleRef])) safe_format(p,cf.ifmt,null,opts);
+				if((cf = styles.CellXf[val[0].iStyleRef])) safe_format(p,cf.ifmt,null,opts, themes, styles);
 				s[encode_col(C=val[0].c) + rr] = p;
 				if(opts.cellFormula) {
 					af = false;
@@ -10003,9 +9974,9 @@ function parse_wb(data, name, opts) {
 	return parse_wb_xml((data), opts);
 }
 
-function parse_ws(data, name, opts, rels, wb) {
-	if(name.slice(-4)===".bin") return parse_ws_bin((data), opts, rels, wb);
-	return parse_ws_xml((data), opts, rels, wb);
+function parse_ws(data, name, opts, rels, wb, themes, styles) {
+	if(name.slice(-4)===".bin") return parse_ws_bin((data), opts, rels, wb, themes, styles);
+	return parse_ws_xml((data), opts, rels, wb, themes, styles);
 }
 
 function parse_sty(data, name, opts) {
@@ -11051,7 +11022,7 @@ function parse_workbook(blob, options) {
 		biff: 8, // BIFF version
 		codepage: 0, // CP from CodePage record
 		winlocked: 0, // fLockWn from WinProtect
-		wtf: false
+		WTF: !!options && !!options.wtf
 	});
 	if(options.password) opts.password = options.password;
 	var mergecells = [];
@@ -13058,6 +13029,7 @@ var parse_content_xml = (function() {
 		var rept = 1, isstub = false;
 		var i = 0;
 		xlmlregex.lastIndex = 0;
+		str = str.replace(/<!--([^\u2603]*?)-->/mg,"").replace(/<!DOCTYPE[^\[]*\[[^\]]*\]>/gm,"");
 		while((Rn = xlmlregex.exec(str))) switch((Rn[3]=Rn[3].replace(/_.*$/,""))) {
 
 			case 'table': case '工作表': // 9.1.2 <table:table>
@@ -13411,7 +13383,7 @@ var parse_content_xml = (function() {
 				if(Rn[2] === 'uof:') break; // TODO: uof
 				if(Rn[2] === '表:') break; // TODO: uof
 				if(Rn[2] === '字:') break; // TODO: uof
-				if(opts.WTF) throw Rn;
+				if(opts.WTF) throw new Error(Rn);
 		}
 		var out = {
 			Sheets: Sheets,
@@ -13590,10 +13562,10 @@ function safe_parse_wbrels(wbrels, sheets) {
 	return !wbrels || wbrels.length === 0 ? null : wbrels;
 }
 
-function safe_parse_ws(zip, path, relsPath, sheet, sheetRels, sheets, opts, wb) {
+function safe_parse_ws(zip, path, relsPath, sheet, sheetRels, sheets, opts, wb, themes, styles) {
 	try {
 		sheetRels[sheet]=parse_rels(getzipstr(zip, relsPath, true), path);
-		sheets[sheet]=parse_ws(getzipdata(zip, path),path,opts,sheetRels[sheet], wb);
+		sheets[sheet]=parse_ws(getzipdata(zip, path),path,opts,sheetRels[sheet], wb, themes, styles);
 	} catch(e) { if(opts.WTF) throw e; }
 }
 
@@ -13626,6 +13598,8 @@ function parse_zip(zip, opts) {
 	if(dir.workbooks[0].slice(-3) == "bin") xlsb = true;
 	if(xlsb) set_cp(1200);
 
+	var themes = ({});
+	var styles = ({});
 	if(!opts.bookSheets && !opts.bookProps) {
 		strs = [];
 		if(dir.sst) strs=parse_sst(getzipdata(zip, dir.sst.replace(/^\//,'')), dir.sst, opts);
@@ -13637,7 +13611,6 @@ function parse_zip(zip, opts) {
     styles = {};
 		if(dir.style) styles = parse_sty(getzipdata(zip, dir.style.replace(/^\//,'')),dir.style, opts);
 
-		themes = {};
 		if(opts.cellStyles && dir.themes.length) themes = parse_theme(getzipstr(zip, dir.themes[0].replace(/^\//,''), true)||"",dir.themes[0], opts);
 	}
 
@@ -13700,7 +13673,7 @@ function parse_zip(zip, opts) {
 			path = path.replace(/sheet0\./,"sheet.");
 		}
 		relsPath = path.replace(/^(.*)(\/)([^\/]*)$/, "$1/_rels/$3.rels");
-		safe_parse_ws(zip, path, relsPath, props.SheetNames[i], sheetRels, sheets, opts, wb);
+		safe_parse_ws(zip, path, relsPath, props.SheetNames[i], sheetRels, sheets, opts, wb, themes, styles);
 	}
 
 	if(dir.comments) parse_comments(zip, dir.comments, sheets, sheetRels, opts);
@@ -13806,7 +13779,7 @@ f = "docProps/app.xml";
 	/* TODO: something more intelligent with themes */
 
 	f = "xl/theme/theme1.xml";
-  zip.file(f, write_theme(opts));
+	zip.file(f, write_theme(wb.Themes, opts));
 	ct.themes.push(f);
 	add_rels(opts.wbrels, ++rId, "theme/theme1.xml", RELS.THEME);
 
