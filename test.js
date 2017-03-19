@@ -206,9 +206,8 @@ describe('should parse test files', function() {
 			it(x + ' [' + ext + ']', function(){
 				var wb = wbtable[dir + x];
 				if(!wb) wb = X.readFile(dir + x, opts);
-        var FILENAME = wb.FILENAME;
-        wb = X.read(X.write(wb, {type:"buffer", bookType:ext.replace(/\./,"")}), {WTF:opts.WTF, cellNF: true})
-        wb.FILENAME = FILENAME;
+
+				wb = X.read(X.write(wb, {type:"buffer", bookType:ext.replace(/\./,"")}), {WTF:opts.WTF, cellNF: true});
 
 				parsetest(x, wb, ext.replace(/\./,"") !== "xlsb", ext);
 			});
@@ -312,7 +311,7 @@ describe('parse options', function() {
 		});
 		it('should generate cell styles when requested', function() {
 			/* TODO: XLS / XLML */
-			[paths.cssxlsx, /*paths.cssxls, paths.cssxml*/].forEach(function(p) {
+			[paths.cssxlsx /*,paths.cssxls, paths.cssxml*/].forEach(function(p) {
 			var wb = X.readFile(p, {cellStyles:true});
 			var found = false;
 			wb.SheetNames.forEach(function(s) {
@@ -794,90 +793,60 @@ describe('parse features', function() {
 			'H1:J4', 'H10' /* blocks */
 		];
 		var exp = [
-  { patternType: 'darkHorizontal',
-    fgColor: { theme: 9, raw_rgb: 'F79646' },
-    bgColor: { theme: 5, raw_rgb: 'C0504D' } },
-  { patternType: 'darkUp',
-    fgColor: { theme: 3, raw_rgb: 'EEECE1' },
-    bgColor: { theme: 7, raw_rgb: '8064A2' } },
-  { patternType: 'darkGray',
-    fgColor: { theme: 3, raw_rgb: 'EEECE1' },
-    bgColor: { theme: 1, raw_rgb: 'FFFFFF' } },
-  { patternType: 'lightGray',
-    fgColor: { theme: 6, raw_rgb: '9BBB59' },
-    bgColor: { theme: 2, raw_rgb: '1F497D' } },
-  { patternType: 'lightDown',
-    fgColor: { theme: 4, raw_rgb: '4F81BD' },
-    bgColor: { theme: 7, raw_rgb: '8064A2' } },
-  { patternType: 'lightGrid',
-    fgColor: { theme: 6, raw_rgb: '9BBB59' },
-    bgColor: { theme: 9, raw_rgb: 'F79646' } },
-  { patternType: 'lightGrid',
-    fgColor: { theme: 4, raw_rgb: '4F81BD' },
-    bgColor: { theme: 2, raw_rgb: '1F497D' } },
-  { patternType: 'lightVertical',
-    fgColor: { theme: 3, raw_rgb: 'EEECE1' },
-    bgColor: { theme: 7, raw_rgb: '8064A2' } }
-    ];
-
-    var exp = [
-      { patternType: 'darkHorizontal',
-        fgColor: { theme: 9, "tint":-0.249977111117893, rgb_raw: 'F79646', rgb: "E46C0A"},
-        bgColor: { theme: 5, "tint":0.3999755851924192, rgb_raw: 'C0504D', rgb: "D99694" } },
-      { patternType: 'darkUp',
-        fgColor: { theme: 3, "tint":-0.249977111117893, rgb_raw: 'EEECE1', rgb: "C4BD97" },
-        bgColor: { theme: 7, "tint":0.3999755851924192, rgb_raw: '8064A2', rgb: "B3A2C7" } },
-      { patternType: 'darkGray',
-        fgColor: { theme: 3, rgb_raw: 'EEECE1', rgb: "EEECE1" },
-        bgColor: { theme: 1, rgb_raw: 'FFFFFF', rgb: "FFFFFF" } },
-      { patternType: 'lightGray',
-        fgColor: { theme: 6, "tint":0.3999755851924192, rgb_raw: '9BBB59', rgb: "C3D69B" },
-        bgColor: { theme: 2, "tint":-0.499984740745262, rgb_raw: '1F497D', rgb: "10253F" } },
-      { patternType: 'lightDown',
-        fgColor: { theme: 4, "tint":-0.249977111117893, rgb_raw: '4F81BD', rgb: "376092" },
-        bgColor: { theme: 7, "tint":-0.249977111117893, rgb_raw: '8064A2', rgb: "604A7B"  } },
-      { patternType: 'lightGrid',
-        fgColor: { theme: 6, "tint":-0.249977111117893, rgb_raw: '9BBB59', rgb: "77933C" },
-        bgColor: { theme: 9, "tint":-0.249977111117893, rgb_raw: 'F79646', rgb: "E46C0A" } },
-      { patternType: 'lightGrid',
-        fgColor: { theme: 4, rgb_raw: '4F81BD' , rgb: "4F81BD"},
-        bgColor: { theme: 2, "tint":-0.749992370372631, rgb_raw: '1F497D', rgb: "08121F" } },
-      { patternType: 'lightVertical',
-        fgColor: { theme: 3, "tint":0.3999755851924192, rgb_raw: 'EEECE1', rgb: "F5F4ED"  },
-        bgColor: { theme: 7, "tint":0.3999755851924192, rgb_raw: '8064A2', rgb: "B3A2C7" } }
-    ];
-    ranges.forEach(function(rng) {
-      it('XLS  | ' + rng,function(){cmparr(rn2(rng).map(function(x){ return wsxls[x].s; }));});
-      it('XLSX | ' + rng,function(){cmparr(rn2(rng).map(function(x){ return wsxlsx[x].s; }));});
-    });
-    it('different styles', function() {
-      for(var i = 0; i != ranges.length-1; ++i) {
-        for(var j = i+1; j != ranges.length; ++j) {
-          diffsty(wsxlsx, rn2(ranges[i])[0], rn2(ranges[j])[0]);
-          /* TODO */
-          //diffsty(wsxls, rn2(ranges[i])[0], rn2(ranges[j])[0]);
-        }
-      }
-    });
-    it('correct styles', function() {
-      var stylesxls = ranges.map(function(r) { return rn2(r)[0]; }).map(function(r) { return wsxls[r].s; });
-      var stylesxlsx = ranges.map(function(r) { return rn2(r)[0]; }).map(function(r) { return wsxlsx[r].s; });
-      for(var i = 0; i != exp.length; ++i) {
-        var props = [
-          "fgColor.theme","fgColor.rgb",
-          "bgColor.theme","bgColor.rgb",
-          "patternType"
-        ];
-
-        props.forEach(function(k) {
-          deepcmp(exp[i], stylesxlsx[i].fill, k, i + ":"+k);
-
-        });
-      }
-    });
-  });
-
-
+			{ patternType: 'darkHorizontal',
+			  fgColor: { theme: 9, raw_rgb: 'F79646' },
+			  bgColor: { theme: 5, raw_rgb: 'C0504D' } },
+			{ patternType: 'darkUp',
+			  fgColor: { theme: 3, raw_rgb: 'EEECE1' },
+			  bgColor: { theme: 7, raw_rgb: '8064A2' } },
+			{ patternType: 'darkGray',
+			  fgColor: { theme: 3, raw_rgb: 'EEECE1' },
+			  bgColor: { theme: 1, raw_rgb: 'FFFFFF' } },
+			{ patternType: 'lightGray',
+			  fgColor: { theme: 6, raw_rgb: '9BBB59' },
+			  bgColor: { theme: 2, raw_rgb: '1F497D' } },
+			{ patternType: 'lightDown',
+			  fgColor: { theme: 4, raw_rgb: '4F81BD' },
+			  bgColor: { theme: 7, raw_rgb: '8064A2' } },
+			{ patternType: 'lightGrid',
+			  fgColor: { theme: 6, raw_rgb: '9BBB59' },
+			  bgColor: { theme: 9, raw_rgb: 'F79646' } },
+			{ patternType: 'lightGrid',
+			  fgColor: { theme: 4, raw_rgb: '4F81BD' },
+			  bgColor: { theme: 2, raw_rgb: '1F497D' } },
+			{ patternType: 'lightVertical',
+			  fgColor: { theme: 3, raw_rgb: 'EEECE1' },
+			  bgColor: { theme: 7, raw_rgb: '8064A2' } }
+		];
+		ranges.forEach(function(rng) {
+			it('XLS  | ' + rng,function(){cmparr(rn2(rng).map(function(x){ return wsxls[x].s; }));});
+			it('XLSX | ' + rng,function(){cmparr(rn2(rng).map(function(x){ return wsxlsx[x].s; }));});
+		});
+		it('different styles', function() {
+			for(var i = 0; i != ranges.length-1; ++i) {
+				for(var j = i+1; j != ranges.length; ++j) {
+					diffsty(wsxlsx, rn2(ranges[i])[0], rn2(ranges[j])[0]);
+					/* TODO */
+					//diffsty(wsxls, rn2(ranges[i])[0], rn2(ranges[j])[0]);
+				}
+			}
+		});
+		it('correct styles', function() {
+			var stylesxls = ranges.map(function(r) { return rn2(r)[0]; }).map(function(r) { return wsxls[r].s; });
+			var stylesxlsx = ranges.map(function(r) { return rn2(r)[0]; }).map(function(r) { return wsxlsx[r].s; });
+			for(var i = 0; i != exp.length; ++i) {
+				[
+					"fgColor.theme","fgColor.raw_rgb",
+					"bgColor.theme","bgColor.raw_rgb",
+					"patternType"
+				].forEach(function(k) {
+					deepcmp(exp[i], stylesxlsx[i], k, i + ":"+k);
+					/* TODO */
+					//deepcmp(exp[i], stylesxls[i], k, i + ":"+k);
+				});
+			}
+		});
+	});
 });
 
 function seq(end, start) {
@@ -1222,17 +1191,17 @@ describe('corner cases', function() {
 			assert.doesNotThrow(function(x) { return X.SSF.format(f, 12345.6789);});
 		});
 	});
-  it('SSF oddities', function() {
-    var ssfdata = require('./misc/ssf.json');
-    ssfdata.forEach(function(d) {
-      for(var j=1;j<d.length;++j) {
-        if(d[j].length == 2) {
-          var expected = d[j][1], actual = X.SSF.format(d[0], d[j][0], {});
-          assert.equal(actual, expected);
-        } else if(d[j][2] !== "#") assert.throws(function() { SSF.format(d[0], d[j][0]); });
-      }
-    });
-  });
+	it('SSF oddities', function() {
+		var ssfdata = require('./misc/ssf.json');
+		ssfdata.forEach(function(d) {
+			for(var j=1;j<d.length;++j) {
+				if(d[j].length == 2) {
+					var expected = d[j][1], actual = X.SSF.format(d[0], d[j][0], {});
+					assert.equal(actual, expected);
+				} else if(d[j][2] !== "#") assert.throws(function() { SSF.format(d[0], d[j][0]); });
+			}
+		});
+	});
 	it('CFB', function() {
 		var cfb = X.CFB.read(paths.swcxls, {type:"file"});
 		var xls = X.parse_xlscfb(cfb);
