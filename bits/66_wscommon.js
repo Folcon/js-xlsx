@@ -63,7 +63,7 @@ function get_cell_style_csf(cellXf) {
 
 function safe_format(p, fmtid, fillid, opts, themes, styles) {
 	if(p.t === 'z') return;
-	if(p.t === 'd' && typeof p.v === 'string') p.v = new Date(p.v);
+	if(p.t === 'd' && typeof p.v === 'string') p.v = parseDate(p.v);
 	try {
 		if(p.t === 'e') p.w = p.w || BErr[p.v];
 		else if(fmtid === 0) {
