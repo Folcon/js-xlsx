@@ -60,9 +60,8 @@ function writeSync(wb/*:Workbook*/, opts/*:?WriteOpts*/) {
 	}
 }
 
-function writeFileSync(wb/*:Workbook*/, filename/*:string*/, opts/*:?WriteFileOpts*/) {
+function resolve_book_type(o/*?WriteFileOpts*/) {
 	var o = opts||{}; o.type = 'file';
-
 	o.file = filename;
 	if(!o.bookType) switch(o.file.slice(-5).toLowerCase()) {
 		case '.xlsx': o.bookType = 'xlsx'; break;
@@ -76,6 +75,20 @@ function writeFileSync(wb/*:Workbook*/, filename/*:string*/, opts/*:?WriteFileOp
 		case '.ods': o.bookType = 'ods'; break;
 		case '.csv': o.bookType = 'csv'; break;
 	}}
+}
+
+function writeFileSync(wb/*:Workbook*/, filename/*:string*/, opts/*:?WriteFileOpts*/) {
+	var o = opts||{}; o.type = 'file';
+	o.file = filename;
+	resolve_book_type(o);
 	return writeSync(wb, o);
 }
 
+function writeFileAsync(filename/*:string*/, wb/*:Workbook*/, opts/*:?WriteFileOpts*/, cb/*:?(e?:ErrnoError)=>void*/) {
+	var o = opts||{}; o.type = 'file';
+	o.file = filename;
+	resolve_book_type(o);
+	o.type = 'buffer';
+	var _cb = cb; if(!(_cb instanceof Function)) _cb = (opts/*:any*/);
+	return _fs.writeFile(filename, writeSync(wb, o), _cb);
+}
