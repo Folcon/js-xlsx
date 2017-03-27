@@ -267,23 +267,15 @@ function parse_cellXfs(t, styles, opts) {
 				break;
 			case '</alignment>': break;
 
-        break;
+			/* 18.8.33 protection CT_CellProtection */
+			case '<protection': case '</protection>': case '<protection/>': break;
 
-      /* 18.8.33 protection CT_CellProtection */
-      case '<protection':
-      case '</protection>':
-      case '<protection/>':
-        break;
-
-      case '<extLst':
-      case '</extLst>':
-        break;
-      case '<ext':
-        break;
-      default:
-        if (opts.WTF) throw 'unrecognized ' + y[0] + ' in cellXfs';
-    }
-  });
+			/* 18.2.10 extLst CT_ExtensionList ? */
+			case '<extLst': case '</extLst>': break;
+			case '<ext': break;
+			default: if(opts.WTF) throw new Error('unrecognized ' + y[0] + ' in cellXfs');
+		}
+	});
 }
 
 function write_cellXfs(cellXfs)/*:string*/ {

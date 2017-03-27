@@ -38,6 +38,7 @@ with a unified JS representation, and ES3/ES5 browser compatibility back to IE6.
     + [Data Types](#data-types)
     + [Dates](#dates)
   * [Worksheet Object](#worksheet-object)
+  * [Chartsheet Object](#chartsheet-object)
   * [Workbook Object](#workbook-object)
   * [Document Features](#document-features)
     + [Formulae](#formulae)
@@ -544,23 +545,12 @@ Special worksheet keys (accessible as `worksheet[key]`, each starting with `!`):
   will write all cells in the merge range if they exist, so be sure that only
   the first cell (upper-left) in the range is set.
 
-- `ws['!printHeader']`:  array of row indices for repeating row headers on print, e.g. `[1:1]` to repeat just the first row.
+### Chartsheet Object
 
-The following properties are currently used when generating an XLSX file, but not yet parsed:
+Chartsheets are represented as standard worksheets.  They are distinguished with
+the `!type` property set to `"chart"`.
 
-- `ws['!rowBreaks']`: array of row break points, e.g. `[16,32]`
-- `ws['!colBreaks']`: array of col break points, e.g. `[8,16]`
-- `ws['!pageSetup']`: `{scale: '100', orientation: 'portrait'||'landscape'}
-- `ws['!printHeader']`: array of first and last row indexes for repeat header on printing, e.g. `[1,1]` to repeat just first row
-- `ws['!freeze']`:  string cell reference for breakpoint, e.g. the following will freeze the first row and first column: 
-        {
-           xSplit: "1",
-           ySplit: "1",
-           topLeftCell: "B2",
-           activePane: "bottomRight",
-           state: "frozen"
-         }
-
+The underlying data and `!ref` refer to the cached data in the chartsheet.
 
 ### Workbook Object
 
@@ -781,8 +771,8 @@ The exported `write` and `writeFile` functions accept an options argument:
 
 - `bookSST` is slower and more memory intensive, but has better compatibility
   with older versions of iOS Numbers
-- The raw data is the only thing guaranteed to be saved.  Formulae, formatting,
-  and other niceties may not be serialized (pending CSF standardization)
+- The raw data is the only thing guaranteed to be saved.  Features not described
+  in this README may not be serialized.
 - `cellDates` only applies to XLSX output and is not guaranteed to work with
   third-party readers.  Excel itself does not usually write cells with type `d`
   so non-Excel tools may ignore the data or blow up in the presence of dates.
