@@ -11,6 +11,18 @@ function get_sst_id(sst/*:SST*/, str/*:string*/)/*:number*/ {
 	sst[len] = {t:str}; sst.Count ++; sst.Unique ++; return len;
 }
 
+function col_obj_w(C/*:number*/, col) {
+	var p = ({min:C+1,max:C+1}/*:any*/);
+	/* wch (chars), wpx (pixels) */
+	var width = -1;
+	if(col.MDW) MDW = col.MDW;
+	if(col.width != null) p.customWidth = 1;
+	else if(col.wpx != null) width = px2char(col.wpx);
+	else if(col.wch != null) width = col.wch;
+	if(width > -1) { p.width = char2width(width); p.customWidth = 1; }
+	return p;
+}
+
 function get_cell_style(styles, cell, opts) {
   if (typeof style_builder != 'undefined') {
     if (/^\d+$/.exec(cell.s)) { return cell.s}  // if its already an integer index, let it be
