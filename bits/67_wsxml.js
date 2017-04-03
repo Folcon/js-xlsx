@@ -297,7 +297,7 @@ return function parse_ws_xml_data(sdata/*:string*/, s, opts, guess/*:Range*/, th
           if(isNaN(p.v)) p.v = "" // we don't want NaN if p.v is null
           break;
 				case 's':
-					if (!p.hasOwnProperty('v')) continue;
+					// if (!p.hasOwnProperty('v')) continue;
 					sstr = strs[parseInt(p.v, 10)];
 					p.v = sstr.t;
 					p.r = sstr.r;
@@ -415,7 +415,12 @@ function write_ws_xml(idx/*:number*/, opts, wb/*:Workbook*/, rels)/*:string*/ {
 
 	o[o.length] = (writextag('dimension', null, {'ref': ref}));
 
-  var sheetView = writextag('sheetView', null,  {
+	var pane = '';
+	if (ws['!freeze']) {
+		pane = writextag('pane',null, ws['!freeze'])
+	}
+
+	var sheetView = writextag('sheetView', pane,  {
     showGridLines: opts.showGridLines == false ? '0' : '1',
     tabSelected: opts.tabSelected === undefined ? '0' :  opts.tabSelected,
     workbookViewId: opts.workbookViewId === undefined ? '0' : opts.workbookViewId

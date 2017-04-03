@@ -4,7 +4,7 @@
 /*global global, exports, module, require:false, process:false, Buffer:false, ArrayBuffer:false */
 var XLSX = {};
 (function make_xlsx(XLSX){
-XLSX.version = '0.8.16';
+XLSX.version = '0.8.17';
 var current_codepage = 1200, current_cptable;
 if(typeof module !== "undefined" && typeof require !== 'undefined') {
 	if(typeof cptable === 'undefined') {
@@ -10765,14 +10765,59 @@ function parse_PtgArea(blob, length, opts) {
 	return [type, area];
 }
 
-/* [MS-XLS] 2.5.198.28 ; [MS-XLSB] 2.5.97.19 */
-function parse_PtgArea3d(blob, length, opts) {
-	var type = (blob[blob.l++] & 0x60) >> 5;
-	var ixti = blob.read_shift(2, 'i');
-	var w = 8;
-	if(opts) switch(opts.biff) {
-		case 5: blob.l += 12; w = 6; break;
-		case 12: w = 12; break;
+			/* SCHEMA IS ACTUALLY INCORRECT HERE.  IF A CELL HAS NO T, EMIT "" */
+			if(tag.t === undefined && tag.s === undefined && p.v === undefined) {
+				if(!opts.sheetStubs) continue;
+				p.t = "stub";
+			}
+			else p.t = tag.t || "n";
+			if(guess.s.c > idx) guess.s.c = idx;
+			if(guess.e.c < idx) guess.e.c = idx;
+			/* 18.18.11 t ST_CellType */
+			switch(p.t) {
+				case 'n':
+          p.v = parseFloat(p.v);
+          if(isNaN(p.v)) p.v = "" // we don't want NaN if p.v is null
+          break;
+				case 's':
+					// if (!p.hasOwnProperty('v')) continue;
+					sstr = strs[parseInt(p.v, 10)];
+					p.v = sstr.t;
+					p.r = sstr.r;
+					if(opts.cellHTML) p.h = sstr.h;
+					break;
+				case 'str':
+					p.t = "s";
+					p.v = (p.v!=null) ? utf8read(p.v) : '';
+					if(opts.cellHTML) p.h = p.v;
+					break;
+				case 'inlineStr':
+					cref = d.match(isregex);
+					p.t = 's';
+					if(cref !== null) { sstr = parse_si(cref[1]); p.v = sstr.t; } else p.v = "";
+					break; // inline string
+				case 'b': p.v = parsexmlbool(p.v); break;
+				case 'd':
+					if(!opts.cellDates) { p.v = datenum(p.v); p.t = 'n'; }
+					break;
+				/* error string in .v, number in .v */
+				case 'e': p.w = p.v; p.v = RBErr[p.v]; break;
+			}
+            /* formatting */
+            fmtid = fillid = 0;
+            if(do_format && tag.s !== undefined) {
+              cf = styles.CellXf[tag.s];
+              if (opts.cellStyles) {
+                p.s = get_cell_style_csf(cf)
+              }
+              if(cf != null) {
+                if(cf.numFmtId != null) fmtid = cf.numFmtId;
+                if(opts.cellStyles && cf.fillId != null) fillid = cf.fillId;
+              }
+            }
+            safe_format(p, fmtid, fillid, opts);
+            s[tag.r] = p;
+      }
 	}
 	var area = parse_RgceArea(blob, w, opts);
 	return [type, ixti, area];
@@ -10811,52 +10856,12 @@ function parse_PtgArray(blob, length, opts) {
 	return [type];
 }
 
-/* [MS-XLS] 2.5.198.33 ; [MS-XLSB] 2.5.97.24 */
-function parse_PtgAttrBaxcel(blob) {
-	var bitSemi = blob[blob.l+1] & 0x01; /* 1 = volatile */
-	var bitBaxcel = 1;
-	blob.l += 4;
-	return [bitSemi, bitBaxcel];
-}
+	var pane = '';
+	if (ws['!freeze']) {
+		pane = writextag('pane',null, ws['!freeze'])
+	}
 
-/* [MS-XLS] 2.5.198.34 ; [MS-XLSB] 2.5.97.25 */
-function parse_PtgAttrChoose(blob, length, opts) {
-	blob.l +=2;
-	var offset = blob.read_shift(opts && opts.biff == 2 ? 1 : 2);
-	var o = [];
-	/* offset is 1 less than the number of elements */
-	for(var i = 0; i <= offset; ++i) o.push(blob.read_shift(opts && opts.biff == 2 ? 1 : 2));
-	return o;
-}
-
-/* [MS-XLS] 2.5.198.35 ; [MS-XLSB] 2.5.97.26 */
-function parse_PtgAttrGoto(blob, length, opts) {
-	var bitGoto = (blob[blob.l+1] & 0xFF) ? 1 : 0;
-	blob.l += 2;
-	return [bitGoto, blob.read_shift(opts && opts.biff == 2 ? 1 : 2)];
-}
-
-/* [MS-XLS] 2.5.198.36 ; [MS-XLSB] 2.5.97.27 */
-function parse_PtgAttrIf(blob, length, opts) {
-	var bitIf = (blob[blob.l+1] & 0xFF) ? 1 : 0;
-	blob.l += 2;
-	return [bitIf, blob.read_shift(opts && opts.biff == 2 ? 1 : 2)];
-}
-
-var WS_XML_ROOT = writextag('worksheet', null, {
-	'xmlns': XMLNS.main[0],
-	'xmlns:r': XMLNS.r
-});
-
-function write_ws_xml(idx, opts, wb) {
-	var o = [XML_HEADER, WS_XML_ROOT];
-	var s = wb.SheetNames[idx], sidx = 0, rdata = "";
-	var ws = wb.Sheets[s];
-	if(ws === undefined) ws = {};
-	var ref = ws['!ref']; if(ref === undefined) ref = 'A1';
-	o[o.length] = (writextag('dimension', null, {'ref': ref}));
-
-  var sheetView = writextag('sheetView', null,  {
+	var sheetView = writextag('sheetView', pane,  {
     showGridLines: opts.showGridLines == false ? '0' : '1',
     tabSelected: opts.tabSelected === undefined ? '0' :  opts.tabSelected,  // see issue #26, need to set WorkbookViews if this is set
     workbookViewId: opts.workbookViewId === undefined ? '0' : opts.workbookViewId
