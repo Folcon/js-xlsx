@@ -599,6 +599,14 @@ In addition to the base sheet keys, worksheets also add:
 | `objects`             | Edit objects                                         |
 | `scenarios`           | Edit scenarios                                       |
 
+- `ws['!autofilter']`: AutoFilter object following the schema:
+
+```typescript
+type AutoFilter = {
+	ref:string; // A-1 based range representing the AutoFilter table range
+}
+```
+
 #### Chartsheet Object
 
 Chartsheets are represented as standard sheets.  They are distinguished with the
@@ -656,6 +664,12 @@ if(!wb.Custprops) wb.Custprops = {};
 wb.Custprops["Custom Property"] = "Custom Value";
 ```
 
+Writers will process the `Props` key of the options object:
+
+```js
+/* force the Author to be "SheetJS" */
+XLSX.write(wb, {Props:{Author:"SheetJS"}});
+```
 ### Document Features
 
 Even for basic features like date storage, the official Excel formats store the
@@ -936,6 +950,7 @@ The exported `write` and `writeFile` functions accept an options argument:
 | bookType    | `"xlsx"` | Type of Workbook (see below for supported formats)  |
 | sheet       |     `""` | Name of Worksheet for single-sheet formats **       |
 | compression |  `false` | Use ZIP compression for ZIP-based formats **        |
+| Props       |          | Override workbook properties when writing **        |
 
 - `bookSST` is slower and more memory intensive, but has better compatibility
   with older versions of iOS Numbers
@@ -1022,6 +1037,8 @@ Borders for merged areas are specified for each cell within the merged area.  So
 * bottom borders for the cells on the left
 
 
+- `Props` is an object mirroring the workbook `Props` field.  See the table from
+  the [Workbook File Properties](#workbook-file-properties) section.
 
 ### Supported Output Formats
 
@@ -1529,6 +1546,7 @@ Latest test files snapshot:
 <https://github.com/SheetJS/test_files/releases/download/20170409/test_files.zip>
 
 Download and unzip to the `test_files` subdirectory.
+
 ## License
 
 Please consult the attached LICENSE file for details.  All rights not explicitly
