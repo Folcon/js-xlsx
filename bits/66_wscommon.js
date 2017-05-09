@@ -114,4 +114,15 @@ function safe_format(p, fmtid, fillid, opts, themes, styles) {
 		else if(p.t === 'd') p.w = SSF.format(fmtid,datenum(p.v),_ssfopts);
 		else p.w = SSF.format(fmtid,p.v,_ssfopts);
 	} catch(e) { if(opts.WTF) throw e; }
+	if(fillid) try {
+		p.s = styles.Fills[fillid];
+		if (p.s.fgColor && p.s.fgColor.theme && !p.s.fgColor.rgb) {
+			p.s.fgColor.rgb = rgb_tint(themes.themeElements.clrScheme[p.s.fgColor.theme].rgb, p.s.fgColor.tint || 0);
+			if(opts.WTF) p.s.fgColor.raw_rgb = themes.themeElements.clrScheme[p.s.fgColor.theme].rgb;
+		}
+		if (p.s.bgColor && p.s.bgColor.theme) {
+			p.s.bgColor.rgb = rgb_tint(themes.themeElements.clrScheme[p.s.bgColor.theme].rgb, p.s.bgColor.tint || 0);
+			if(opts.WTF) p.s.bgColor.raw_rgb = themes.themeElements.clrScheme[p.s.bgColor.theme].rgb;
+		}
+	} catch(e) { if(opts.WTF) throw e; }
 }
