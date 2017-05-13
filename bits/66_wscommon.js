@@ -25,7 +25,7 @@ function col_obj_w(C/*:number*/, col) {
 	return p;
 }
 
-function default_margins(margins, mode) {
+function default_margins(margins/*:Margins*/, mode/*:?string*/) {
 	if(!margins) return;
 	var defs = [0.7, 0.7, 0.75, 0.75, 0.3, 0.3];
 	if(mode == 'xlml') defs = [1, 1, 1, 1, 0.5, 0.5];
@@ -90,7 +90,7 @@ function get_cell_style_csf(cellXf) {
   return null;
 }
 
-function safe_format(p, fmtid, fillid, opts, themes, styles) {
+function safe_format(p, fmtid/*:number*/, fillid, opts, themes, styles) {
 	if(p.t === 'z') return;
 	if(p.t === 'd' && typeof p.v === 'string') p.v = parseDate(p.v);
 	try {
