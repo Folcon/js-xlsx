@@ -4,7 +4,7 @@
 /*global global, exports, module, require:false, process:false, Buffer:false, ArrayBuffer:false */
 var XLSX = {};
 (function make_xlsx(XLSX){
-XLSX.version = '0.8.17';
+XLSX.version = '0.8.20';
 var current_codepage = 1200, current_cptable;
 if(typeof module !== "undefined" && typeof require !== 'undefined') {
 	if(typeof cptable === 'undefined') {
@@ -11966,18 +11966,32 @@ function write_Formula(cell, R, C, opts, os) {
 	// Cell
 	var o1 = write_XLSCell(R, C, os);
 
-	// FormulaValue
-	var o2 = write_FormulaValue(cell.v);
+  if (hasPrintHeaders) {
+    o[o.length] = '<definedNames>';
+    for(var i = 0; i != wb.SheetNames.length; ++i) {
+      var sheetName = wb.SheetNames[i];
+      var sheet = wb.Sheets[sheetName]
+      if (sheet['!printHeader'] || sheet['!printColumns']) {
+          var printHeader = sheet['!printHeader'];
+          var printColumns = sheet['!printColumns'];
 
-	// flags + cache
-	var o3 = new_buf(6);
-	var flags = 0x01 | 0x20;
-	o3.write_shift(2, flags);
-	o3.write_shift(4, 0);
+        //Sheet1!$A:$C,Sheet1!$1:$1
+        var range = "";
 
-	// CellParsedFormula
-	var bf = new_buf(cell.bf.length);
-	for(var i = 0; i < cell.bf.length; ++i) bf[i] = cell.bf[i];
+        if (printColumns)  range += ("'" + sheetName + "'!")  + ("$" + printColumns[0] + ":$" + printColumns[1]);
+        if (printColumns && printHeader)  range += ","
+        if (printHeader) range += ("'" + sheetName + "'!" ) +  ("$" + printHeader[0] + ":$" + printHeader[1]);
+
+        console.log("-----------------------------")
+        console.log(range)
+        o[o.length] = (writextag('definedName', range, {
+          "name":"_xlnm.Print_Titles",
+          localSheetId : ''+i
+        }))
+      }
+    }
+    o[o.length] = '</definedNames>';
+  }
 
 	var out = bconcat([o1, o2, o3, bf]);
 	return out;
