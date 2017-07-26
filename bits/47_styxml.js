@@ -8,7 +8,7 @@ function parse_borders(t, styles, themes, opts) {
 			case '<borders': case '<borders>': case '</borders>': break;
 
 			/* 18.8.4 border CT_Border */
-			case '<border': case '<border>':
+			case '<border': case '<border>': case '<border/>':
 				border = {};
 				if (y.diagonalUp) { border.diagonalUp = y.diagonalUp; }
 				if (y.diagonalDown) { border.diagonalDown = y.diagonalDown; }
@@ -80,6 +80,7 @@ function parse_fills(t, styles, themes, opts) {
 
 			/* 18.8.24 gradientFill CT_GradientFill */
 			case '<gradientFill>': break;
+			case '<gradientFill':
 			case '</gradientFill>': styles.Fills.push(fill); fill = {}; break;
 
 			/* 18.8.32 patternFill CT_PatternFill */
