@@ -236,7 +236,7 @@ Excel 2007, nothing outside of SheetJS or Excel supported the format.
 
 To promote a format-agnostic view, js-xlsx starts from a pure-JS representation
 that we call the ["Common Spreadsheet Format"](#common-spreadsheet-format).
-Emphasizing a uniform object representation enables radical features like format
+Emphasizing a uniform object representation enables new features like format
 conversion (e.g. reading an XLSX template and saving as XLS) and circumvents the
 "class trap".  By abstracting the complexities of the various formats, tools
 need not worry about the specific file type!
@@ -442,7 +442,7 @@ On Windows XP and up you can get the base64 encoding using `certutil`:
 The most common and interesting formats (XLS, XLSX/M, XLSB, ODS) are ultimately
 ZIP or CFB containers of files.  Neither format puts the directory structure at
 the beginning of the file: ZIP files place the Central Directory records at the
-end of the logical file, while CFB files can place the FAT structure anywhere in
+end of the logical file, while CFB files can place the storage info anywhere in
 the file! As a result, to properly handle these formats, a streaming function
 would have to buffer the entire file before commencing.  That belies the
 expectations of streaming, so we do not provide any streaming read API.
@@ -1519,85 +1519,7 @@ The exported `write` and `writeFile` functions accept an options argument:
   in this README may not be serialized.
 - `cellDates` only applies to XLSX output and is not guaranteed to work with
   third-party readers.  Excel itself does not usually write cells with type `d`
-  so non-Excel tools may ignore the data or blow up in the presence of dates.
-- showGridLines and tabSelected are currently used when generating an XLSX file but not yet parse.
-- Props specifies workbook properties
-   
-
-
-
-## Cell Styles
-
-Cell styles are specified by a style object that roughly parallels the OpenXML structure.  The style object has five
-top-level attributes: `fill`, `font`, `numFmt`, `alignment`, and `border`.
-
-
-| Style Attribute | Sub Attributes | Values |
-| :-------------- | :------------- | :------------- |
-| fill            | patternType    |  `"solid"` or `"none"`
-|                 | fgColor        |  `COLOR_SPEC`
-|                 | bgColor        |  `COLOR_SPEC`
-| font            | name           |  `"Calibri"` // default
-|                 | sz             |  `"11"` // font size in points
-|                 | color          |  `COLOR_SPEC`
-|                 | bold           |  `true` or `false`
-|                 | underline      |  `true` or `false`
-|                 | italic         |  `true` or `false`
-|                 | strike         |  `true` or `false`
-|                 | outline        |  `true` or `false`
-|                 | shadow         |  `true` or `false`
-|                 | vertAlign      |  `true` or `false`
-| numFmt          |                |  `"0"`  // integer index to built in formats, see StyleBuilder.SSF property
-|                 |                |  `"0.00%"` // string matching a built-in format, see StyleBuilder.SSF
-|                 |                |  `"0.0%"`  // string specifying a custom format
-|                 |                |  `"0.00%;\\(0.00%\\);\\-;@"` // string specifying a custom format, escaping special characters
-|                 |                |  `"m/dd/yy"` // string a date format using Excel's format notation
-| alignment       | vertical       | `"bottom"` or `"center"` or `"top"`
-|                 | horizontal     | `"bottom"` or `"center"` or `"top"`
-|                 | wrapText       |  `true ` or ` false`
-|                 | readingOrder   |  `2` // for right-to-left
-|                 | textRotation   | Number from `0` to `180` or `255` (default is `0`)
-|                 |                |  `90` is rotated up 90 degrees
-|                 |                |  `45` is rotated up 45 degrees
-|                 |                | `135` is rotated down 45 degrees
-|                 |                | `180` is rotated down 180 degrees
-|                 |                | `255` is special,  aligned vertically
-| border          | top            | `{ style: BORDER_STYLE, color: COLOR_SPEC }`
-|                 | bottom         | `{ style: BORDER_STYLE, color: COLOR_SPEC }`
-|                 | left           | `{ style: BORDER_STYLE, color: COLOR_SPEC }`
-|                 | right          | `{ style: BORDER_STYLE, color: COLOR_SPEC }`
-|                 | diagonal       | `{ style: BORDER_STYLE, color: COLOR_SPEC }`
-|                 | diagonalUp     | `true` or `false`
-|                 | diagonalDown   | `true` or `false`
-
-**COLOR_SPEC**: Colors for `fill`, `font`, and `border` are specified as objects, either:
-* `{ auto: 1}` specifying automatic values
-* `{ rgb: "FFFFAA00" }` specifying a hex ARGB value
-* `{ theme: "1", tint: "-0.25"}` specifying an integer index to a theme color and a tint value (default 0)
-* `{ indexed: 64}` default value for `fill.bgColor`
-
-**BORDER_STYLE**: Border style is a string value which may take on one of the following values:
- * `thin`
- * `medium`
- * `thick`
- * `dotted`
- * `hair`
- * `dashed`
- * `mediumDashed`
- * `dashDot`
- * `mediumDashDot`
- * `dashDotDot`
- * `mediumDashDotDot`
- * `slantDashDot`
-
-
-Borders for merged areas are specified for each cell within the merged area.  So to apply a box border to a merged area of 3x3 cells, border styles would need to be specified for eight different cells:
-* left borders for the three cells on the left,
-* right borders for the cells on the right
-* top borders for the cells on the top
-* bottom borders for the cells on the left
-
-
+  so non-Excel tools may ignore the data or error in the presence of dates.
 - `Props` is an object mirroring the workbook `Props` field.  See the table from
   the [Workbook File Properties](#workbook-file-properties) section.
 - if specified, the string from `themeXLSX` will be saved as the primary theme
@@ -2078,7 +2000,7 @@ standard, instead focusing on parts necessary to extract and store raw data.
 
 UOS is a very similar format, and it comes in 2 varieties corresponding to ODS
 and FODS respectively.  For the most part, the difference between the formats
-lies in the names of tags and attributes.
+is in the names of tags and attributes.
 
 </details>
 
@@ -2204,7 +2126,7 @@ Start a local server and navigate to that directory to run the tests.
 
 To run the full in-browser tests, clone the repo for
 [oss.sheetjs.com](https://github.com/SheetJS/SheetJS.github.io) and replace
-the xlsx.js file (then fire up the browser and go to `stress.html`):
+the xlsx.js file (then open a browser window and go to `stress.html`):
 
 ```bash
 $ cp xlsx.js ../SheetJS.github.io
