@@ -90,7 +90,7 @@ function get_cell_style_csf(cellXf) {
   return null;
 }
 
-function safe_format(p, fmtid/*:number*/, fillid/*:?number*/, opts, themes, styles) {
+function safe_format(p/*:Cell*/, fmtid/*:number*/, fillid/*:?number*/, opts, themes, styles) {
 	if(p.t === 'z') return;
 	if(p.t === 'd' && typeof p.v === 'string') p.v = parseDate(p.v);
 	try {
