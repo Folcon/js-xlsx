@@ -1,7 +1,7 @@
 /* 18.8.5 borders CT_Borders */
 function parse_borders(t, styles, themes, opts) {
 	styles.Borders = [];
-	var border = {}, sub_border = {};
+	var border = {}/*, sub_border = {}*/;
 	t[0].match(tagregex).forEach(function(x) {
 		var y = parsexmltag(x);
 		switch (y[0]) {
@@ -296,7 +296,7 @@ function parse_cellXfs(t, styles, opts) {
 				for(i = 0; i < cellXF_uint.length; ++i) if(xf[cellXF_uint[i]])
 					xf[cellXF_uint[i]] = parseInt(xf[cellXF_uint[i]], 10);
 				for(i = 0; i < cellXF_bool.length; ++i) if(xf[cellXF_bool[i]])
-					xf[cellXF_bool[i]] = parsexmlbool(xf[cellXF_bool[i]], "");
+					xf[cellXF_bool[i]] = parsexmlbool(xf[cellXF_bool[i]]);
 				if(xf.numFmtId > 0x188) {
 					for(i = 0x188; i > 0x3c; --i) if(styles.NumberFmt[xf.numFmtId] == styles.NumberFmt[i]) { xf.numFmtId = i; break; }
 				}
