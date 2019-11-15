@@ -220,6 +220,8 @@ The [`demos` directory](demos/) includes sample projects for:
 - [`"serverless" functions`](demos/function/)
 - [`internet explorer`](demos/oldie/)
 
+Other examples are included in the [showcase](demos/showcase/).
+
 ### Optional Modules
 
 <details>
@@ -299,7 +301,7 @@ operations generally should be straightforward to implement.
 
 Excel pushes the XLSX format as default starting in Excel 2007.  However, there
 are other formats with more appealing properties.  For example, the XLSB format
-is spiritually similar to XLSX but files often end up taking less than half the
+is spiritually similar to XLSX but files often tend up taking less than half the
 space and open much faster!  Even though an XLSX writer is available, other
 format writers are available so users can take advantage of the unique
 characteristics of each format.
@@ -1979,7 +1981,7 @@ default column order is determined by the first appearance of the field using
 <details>
   <summary><b>Examples</b> (click to show)</summary>
 
-The original sheet cannot be reproduced in the obvious way since JS object keys
+The original sheet cannot be reproduced using plain objects since JS object keys
 must be unique. After replacing the second `e` and `S` with `e_1` and `S_1`:
 
 ```js
