@@ -114,11 +114,11 @@ function get_cell_style_csf(cellXf) {
 }
 
 function safe_format(p/*:Cell*/, fmtid/*:number*/, fillid/*:?number*/, opts, themes, styles) {
-	if(p.t === 'z') return;
-	if(p.t === 'd' && typeof p.v === 'string') p.v = parseDate(p.v);
 	try {
 		if(opts.cellNF) p.z = SSF._table[fmtid];
 	} catch(e) { if(opts.WTF) throw e; }
+	if(p.t === 'z') return;
+	if(p.t === 'd' && typeof p.v === 'string') p.v = parseDate(p.v);
 	if(!opts || opts.cellText !== false) try {
 		if(SSF._table[fmtid] == null) SSF.load(SSFImplicit[fmtid] || "General", fmtid);
 		if(p.t === 'e') p.w = p.w || BErr[p.v];
