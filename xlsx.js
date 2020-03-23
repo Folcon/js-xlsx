@@ -16457,7 +16457,7 @@ Workbook.WBProps.date1904 = true;
 
 				case 'datavalidation' /*case 'DataValidation'*/:
 				switch(Rn[3]) {
-					case 'range' /*case 'Range'*/: dval.ref = Rn; break;
+					case 'range' /*case 'Range'*/: break;
 
 					case 'type' /*case 'Type'*/: break;
 					case 'min' /*case 'Min'*/: break;
