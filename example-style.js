@@ -1,5 +1,5 @@
-var XLSX = require('xlsx');
-var OUTFILE = '/tmp/example-style.xlsx';
+var XLSX = require('./xlsx');
+var OUTFILE = 'tmp/example-style1.xlsx';
 
 function JSDateToExcelDate(inDate) {
   return 25569.0 + ((inDate.getTime() - (inDate.getTimezoneOffset() * 60 * 1000)) / (1000 * 60 * 60 * 24));
