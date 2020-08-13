@@ -4905,23 +4905,22 @@ function cp_doit(f, g, h, o, p) {
 function write_core_props(cp, _opts) {
 	var opts = _opts || {};
 	var o = [XML_HEADER, CORE_PROPS_XML_ROOT], p = {};
-	if(!cp && !opts.Props) return o.join("");
+  if (opts && opts.Props) {
+    if (opts.Props.title) o[o.length]       = '<dc:title>'       + opts.Props.title        + '</dc:title>';
+    if (opts.Props.subject) o[o.length]     = '<dc:subject>'     + opts.Props.subject      + '</dc:subject>';
+    if (opts.Props.creator) o[o.length]     = '<dc:creator>'     + opts.Props.creator      + '</dc:creator>';
+    if (opts.Props.keywords) o[o.length]    = '<cp:keywords>'    + opts.Props.keywords      + '</cp:keywords>';
+    if (opts.Props.description) o[o.length] = '<dc:description>' + opts.Props.description  + '</dc:description>';
+  }
+  if(cp) {
 
-	if(cp) {
-		if(cp.CreatedDate != null) cp_doit("dcterms:created", typeof cp.CreatedDate === "string" ? cp.CreatedDate : write_w3cdtf(cp.CreatedDate, opts.WTF), {"xsi:type":"dcterms:W3CDTF"}, o, p);
-		if(cp.ModifiedDate != null) cp_doit("dcterms:modified", typeof cp.ModifiedDate === "string" ? cp.ModifiedDate : write_w3cdtf(cp.ModifiedDate, opts.WTF), {"xsi:type":"dcterms:W3CDTF"}, o, p);
-	}
+    if(cp.CreatedDate != null) cp_doit("dcterms:created", typeof cp.CreatedDate === "string" ? cp.CreatedDate : write_w3cdtf(cp.CreatedDate, opts.WTF), {"xsi:type":"dcterms:W3CDTF"}, o, p);
+    if(cp.ModifiedDate != null) cp_doit("dcterms:modified", typeof cp.ModifiedDate === "string" ? cp.ModifiedDate : write_w3cdtf(cp.ModifiedDate, opts.WTF), {"xsi:type":"dcterms:W3CDTF"}, o, p);
 
-	for(var i = 0; i != CORE_PROPS.length; ++i) {
-		var f = CORE_PROPS[i];
-		var v = opts.Props && opts.Props[f[1]] != null ? opts.Props[f[1]] : cp ? cp[f[1]] : null;
-		if(v === true) v = "1";
-		else if(v === false) v = "0";
-		else if(typeof v == "number") v = String(v);
-		if(v != null) cp_doit(f[0], v, null, o, p);
-	}
-	if(o.length>2){ o[o.length] = ('</cp:coreProperties>'); o[1]=o[1].replace("/>",">"); }
-	return o.join("");
+  	for(var i = 0; i != CORE_PROPS.length; ++i) { var f = CORE_PROPS[i]; cp_doit(f[0], cp[f[1]], null, o, p); }
+  }
+  if(o.length>2){ o[o.length] = ('</cp:coreProperties>'); o[1]=o[1].replace("/>",">"); }
+  return o.join("");
 }
 /* 15.2.12.3 Extended File Properties Part */
 /* [MS-OSHARED] 2.3.3.2.[1-2].1 (PIDSI/PIDDSI) */
@@ -9797,29 +9796,57 @@ function write_BrtFill(fill, o) {
 	return o.length > o.l ? o.slice(0, o.l) : o;
 }
 
-/* [MS-XLSB] 2.4.824 BrtXF */
-function parse_BrtXF(data, length) {
-	var tgt = data.l + length;
-	var ixfeParent = data.read_shift(2);
-	var ifmt = data.read_shift(2);
-	data.l = tgt;
-	return {ixfe:ixfeParent, numFmtId:ifmt };
+function get_cell_style(styles, cell, opts) {
+  if (typeof style_builder != 'undefined') {
+    if (/^\d+$/.exec(cell.s)) { return cell.s}  // if its already an integer index, let it be
+    if (cell.s && (cell.s == +cell.s)) { return cell.s}  // if its already an integer index, let it be
+    var s = cell.s || {};
+    if (cell.z) s.numFmt = cell.z;
+    return style_builder.addStyle(s);
+  }
+  else {
+    var z = opts.revssf[cell.z != null ? cell.z : "General"];
+    for(var i = 0, len = styles.length; i != len; ++i) if(styles[i].numFmtId === z) return i;
+    styles[len] = {
+      numFmtId:z,
+      fontId:0,
+      fillId:0,
+      borderId:0,
+      xfId:0,
+      applyNumberFormat:1
+    };
+    return len;
+  }
 }
-function write_BrtXF(data, ixfeP, o) {
-	if(!o) o = new_buf(16);
-	o.write_shift(2, ixfeP||0);
-	o.write_shift(2, data.numFmtId||0);
-	o.write_shift(2, 0); /* iFont */
-	o.write_shift(2, 0); /* iFill */
-	o.write_shift(2, 0); /* ixBorder */
-	o.write_shift(1, 0); /* trot */
-	o.write_shift(1, 0); /* indent */
-	var flow = 0;
-	o.write_shift(1, flow); /* flags */
-	o.write_shift(1, 0); /* flags */
-	o.write_shift(1, 0); /* xfGrbitAtr */
-	o.write_shift(1, 0);
-	return o;
+
+function get_cell_style_csf(cellXf) {
+
+  if (cellXf) {
+
+    var s = {}
+
+    if (typeof cellXf.numFmtId != undefined)  {
+      s.numFmt = SSF._table[cellXf.numFmtId];
+    }
+
+    if(cellXf.fillId)  {
+      s.fill =  styles.Fills[cellXf.fillId];
+    }
+
+    if (cellXf.fontId) {
+      s.font = styles.Fonts[cellXf.fontId];
+    }
+    if (cellXf.borderId) {
+      s.border = styles.Borders[cellXf.borderId];
+    }
+    if (cellXf.applyAlignment==1) {
+      s.alignment = cellXf.alignment;
+    }
+
+
+    return JSON.parse(JSON.stringify(s));
+  }
+  return null;
 }
 
 /* [MS-XLSB] 2.5.4 Blxf TODO */
@@ -10176,8 +10203,6 @@ function write_ws_xml_pagesetup(setup) {
   return pageSetup;
 }
 
-/* 20.1.4.1.18 fontScheme CT_FontScheme */
-function parse_fontScheme() { }
 
 function parse_ws_xml_hlinks(s, data, rels) {
   for (var i = 0; i != data.length; ++i) {
@@ -22050,34 +22075,6 @@ utils.book_append_sheet = function(wb, ws, name) {
 
 	wb.SheetNames.push(name);
 	wb.Sheets[name] = ws;
-};
-
-/* set sheet visibility (visible/hidden/very hidden) */
-utils.book_set_sheet_visibility = function(wb, sh, vis) {
-	get_default(wb,"Workbook",{});
-	get_default(wb.Workbook,"Sheets",[]);
-
-	var idx = wb_sheet_idx(wb, sh);
-	// $FlowIgnore
-	get_default(wb.Workbook.Sheets,idx, {});
-
-	switch(vis) {
-		case 0: case 1: case 2: break;
-		default: throw new Error("Bad sheet visibility setting " + vis);
-	}
-	// $FlowIgnore
-	wb.Workbook.Sheets[idx].Hidden = vis;
-};
-add_consts([
-	["SHEET_VISIBLE", 0],
-	["SHEET_HIDDEN", 1],
-	["SHEET_VERY_HIDDEN", 2]
-]);
-
-/* set number format */
-utils.cell_set_number_format = function(cell, fmt) {
-	cell.z = fmt;
-	return cell;
 };
 
 

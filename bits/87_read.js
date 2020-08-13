@@ -98,7 +98,9 @@ function readSync(data/*:RawData*/, opts/*:?ParseOpts*/)/*:Workbook*/ {
 	return read_prn(data, d, o, str);
 }
 
-function readFileSync(filename/*:string*/, opts/*:?ParseOpts*/)/*:Workbook*/ {
-	var o = opts||{}; o.type = 'file';
-	return readSync(filename, o);
+function readFileSync(data, opts) {
+	var o = opts||{}; o.type = 'file'
+  var wb = readSync(data, o);
+  wb.FILENAME = data;
+	return wb;
 }

@@ -137,5 +137,6 @@ function safe_format(p, fmtid, fillid, opts) {
 		}
 		else if(p.t === 'd') p.w = SSF.format(fmtid,datenum(p.v),_ssfopts);
 		else p.w = SSF.format(fmtid,p.v,_ssfopts);
+		if(opts.cellNF) p.z = SSF._table[fmtid];
 	} catch(e) { if(opts.WTF) throw e; }
 }

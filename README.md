@@ -136,9 +136,6 @@ be configured to remove support with `resolve.alias`:
 
 ### ECMAScript 5 Compatibility
 
-Since the library uses functions like `Array#forEach`, older browsers require
-[shims to provide missing functions](http://oss.sheetjs.com/js-xlsx/shim.js).
-
 ```html
 <script type="text/javascript" src="/path/to/shim.js"></script>
 ```
@@ -410,22 +407,6 @@ var desired_value = (desired_cell ? desired_cell.v : undefined);
 
 </details>
 
-<details>
-  <summary><b>Adding a new worksheet to a workbook</b> (click to show)</summary>
-
-This example uses [`XLSX.utils.aoa_to_sheet`](#array-of-arrays-input) to make a
-sheet and `XLSX.utils.book_append_sheet` to append the sheet to the workbook:
-
-```js
-var ws_name = "SheetJS";
-
-/* make worksheet */
-var ws_data = [
-  [ "S", "h", "e", "e", "t", "J", "S" ],
-  [  1 ,  2 ,  3 ,  4 ,  5 ]
-];
-var ws = XLSX.utils.aoa_to_sheet(ws_data);
-
 ```js
 var sheet_name_list = workbook.SheetNames;
 
@@ -475,8 +456,6 @@ Assuming `workbook` is a workbook object:
 <details>
   <summary><b>nodejs write a file</b> (click to show)</summary>
 
-`XLSX.writeFile` uses `fs.writeFileSync` in server environments:
-
 ```js
 /* output format determined by filename */
 XLSX.writeFile(workbook, 'out.xlsx');
@@ -484,14 +463,6 @@ XLSX.writeFile(workbook, 'out.xlsx');
 ```
 
 The [`extendscript` demo](demos/extendscript/) includes a more complex example.
-
-</details>
-
-<details>
-  <summary><b>Browser add TABLE element to page</b> (click to show)</summary>
-
-The `sheet_to_html` utility function generates HTML code that can be added to
-any DOM element.
 
 ```js
 /* bookType can be 'xlsx' or 'xlsm' or 'xlsb' */
@@ -739,6 +710,10 @@ To specify a number format, use `s.numFmt`, e.g. `{v: 42145.822, s: { numFmt: "m
 
 ### Data Types
 
+The raw value is stored in the `v` field, interpreted based on the `t` field.
+
+### Data Types
+
 | Type | Description                                                           |
 | :--: | :-------------------------------------------------------------------- |
 | `b`  | Boolean: value interpreted as JS `boolean`                            |
@@ -979,7 +954,7 @@ The exported `write` and `writeFile` functions accept an options argument:
 | cellDates   | false   | Store dates as type `d` (default is `n`) |
 | bookSST     | false   | Generate Shared String Table ** |
 | bookType    | 'xlsx'  | Type of Workbook ("xlsx" or "xlsm" or "xlsb") |
-| showGridLines | true | Show gridlines on all pages |
+| showGridLines | true | Show gridlines on all pages  |
 | tabSelected | '1' | Initial tab selected |
 | Props       | null | Workbook properties |
 
@@ -1170,20 +1145,5 @@ prefixed with an apostrophe `'`, consistent with Excel's formula bar display.
 
 <details>
   <summary><b>Formulae File Format Details</b> (click to show)</summary>
-
-| Storage Representation | Formats                  | Read  | Write |
-|:-----------------------|:-------------------------|:-----:|:-----:|
-| A1-style strings       | XLSX                     |  :o:  |  :o:  |
-| RC-style strings       | XLML and plain text      |  :o:  |  :o:  |
-| BIFF Parsed formulae   | XLSB and all XLS formats |  :o:  |       |
-| OpenFormula formulae   | ODS/FODS/UOS             |  :o:  |  :o:  |
-
-Since Excel prohibits named cells from colliding with names of A1 or RC style
-cell references, a (not-so-simple) regex conversion is possible.  BIFF Parsed
-formulae have to be explicitly unwound.  OpenFormula formulae can be converted
-with regular expressions.
-</details>
-
-#### Column Properties
 
 [![Coverage Status](http://img.shields.io/coveralls/SheetJS/js-xlsx/master.svg)](https://coveralls.io/r/SheetJS/js-xlsx?branch=master)

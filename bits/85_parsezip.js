@@ -88,6 +88,10 @@ function parse_zip(zip/*:ZIP*/, opts/*:?ParseOpts*/)/*:Workbook*/ {
     themes = {};
     if(opts.cellStyles && dir.themes.length) themes = parse_theme(getzipdata(zip, dir.themes[0].replace(/^\//,''), true),dir.themes[0], opts);
 
+    // parse themes before styles so that we can reliably decode theme/tint into rgb when parsing styles
+    themes = {};
+    if(opts.cellStyles && dir.themes.length) themes = parse_theme(getzipdata(zip, dir.themes[0].replace(/^\//,''), true),dir.themes[0], opts);
+
     styles = {};
 		if(dir.style) styles = parse_sty(getzipdata(zip, dir.style.replace(/^\//,'')),dir.style, opts);
 
