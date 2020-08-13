@@ -1,5 +1,7 @@
 /* xlsx.js (C) 2013-present SheetJS -- http://sheetjs.com */
 /* vim: set ts=2: */
+/*jshint loopfunc:true, eqnull:true */
+var X;
 var X; var XLSX = require('./')
 var modp = './';
 var fs = require('fs'), assert = require('assert');

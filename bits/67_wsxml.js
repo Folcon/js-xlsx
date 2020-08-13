@@ -109,18 +109,6 @@ function parse_ws_xml_hlinks(s, data, rels) {
   }
 }
 
-function parse_ws_xml_margins(margin) {
-	var o = {};
-	["left", "right", "top", "bottom", "header", "footer"].forEach(function(k) {
-		if(margin[k]) o[k] = parseFloat(margin[k]);
-	});
-	return o;
-}
-function write_ws_xml_margins(margin)/*:string*/ {
-	default_margins(margin);
-	return writextag('pageMargins', null, margin);
-}
-
 function parse_ws_xml_cols(columns, cols) {
   var seencol = false;
   for (var coli = 0; coli != cols.length; ++coli) {
@@ -438,6 +426,15 @@ function write_ws_xml_row_breaks(breaks) {
     brk.push(writextag('brk', null, {id: thisBreak, max: nextBreak, man: '1'}))
   }
   return writextag('rowBreaks', brk.join(' '), {count: brk.length, manualBreakCount: brk.length})
+}
+function write_ws_xml_col_breaks(breaks) {
+  var brk = [];
+  for (var i = 0; i < breaks.length; i++) {
+    var thisBreak = '' + (breaks[i]);
+    var nextBreak = '' + (breaks[i + 1] || '1048575');
+    brk.push(writextag('brk', null, {id: thisBreak, max: nextBreak, man: '1'}))
+  }
+  return writextag('colBreaks', brk.join(' '), {count: brk.length, manualBreakCount: brk.length})
 }
 function write_ws_xml_col_breaks(breaks) {
   var brk = [];

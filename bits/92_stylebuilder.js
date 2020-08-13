@@ -193,7 +193,7 @@
           if (attributes.alignment.indent)  { $alignment.attr('indent', attributes.alignment.indent);}
           if (attributes.alignment.readingOrder)  { $alignment.attr('readingOrder', attributes.alignment.readingOrder);}
           if (attributes.alignment.wrapText)  { $alignment.attr('wrapText', attributes.alignment.wrapText);}
-          if (attributes.alignment.textRotation)  { $alignment.attr('textRotation', attributes.alignment.textRotation);}
+          if (attributes.alignment.textRotation!=undefined)  { $alignment.attr('textRotation', attributes.alignment.textRotation);}
 
           $xf.append($alignment).attr('applyAlignment',1)
 
