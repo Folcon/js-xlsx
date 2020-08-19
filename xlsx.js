@@ -14294,8 +14294,6 @@ function writeSync(wb, opts) {
 }
 
 function resolve_book_type(o/*?WriteFileOpts*/) {
-	var o = opts||{}; o.type = 'file';
-	o.file = filename;
 	if(!o.bookType) switch(o.file.slice(-5).toLowerCase()) {
 		case '.xlsx': o.bookType = 'xlsx'; break;
 		case '.xlsm': o.bookType = 'xlsm'; break;
