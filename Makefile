@@ -38,7 +38,7 @@ $(MINIFLOW): $(MINIDEPS)
 bits/01_version.js: package.json
 	echo "$(ULIB).version = '"`grep version package.json | awk '{gsub(/[^0-9a-z\.-]/,"",$$2); print $$2}'`"';" > $@
 
-bits/18_cfb.js: node_modules/cfb/xlscfb.flow.js
+bits/18_cfb.js: node_modules/cfb/dist/xlscfb.js
 	cp $^ $@
 
 .PHONY: clean

@@ -1,4 +1,4 @@
-var XLSX = require('./');
+var XLSX = require('./xlsx');
 var OUTFILE = 'tmp/example-style-new.xlsx';
 
 function JSDateToExcelDate(inDate) {

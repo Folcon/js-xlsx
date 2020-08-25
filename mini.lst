@@ -15,7 +15,9 @@ bits/22_xmlutils.js
 bits/23_binutils.js
 bits/24_hoppers.js
 bits/25_cellutils.js
+
 bits/27_csfutils.js
+bits/28_binstructs.js
 bits/29_xlsenum.js
 bits/30_ctype.js
 bits/31_rels.js
@@ -50,6 +52,9 @@ bits/86_writezip.js
 bits/87_read.js
 bits/88_write.js
 bits/90_utils.js
-bits/95_api.js
+bits/92_api.js
+bits/93_node.js
+bits/94_xmlbuilder.js
+bits/95_stylebuilder.js
 bits/98_exports.js
 bits/99_footer.js
