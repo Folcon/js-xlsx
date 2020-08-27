@@ -247,3 +247,7 @@ help:
 #* To show a spinner, append "-spin" to any target e.g. cov-spin
 %-spin:
 	@make $* & bash misc/spin.sh $$!
+
+.PHONY: runscript
+runscript:
+	./file_script.bat
