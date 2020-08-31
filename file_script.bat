@@ -1,4 +1,4 @@
-
+    
     git checkout master -- bits/47_styxml.js
 
     sed -i "s|xlscfb.flow.js|dist/xlscfb.js|g" Makefile

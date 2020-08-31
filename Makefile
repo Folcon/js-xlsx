@@ -248,6 +248,7 @@ help:
 %-spin:
 	@make $* & bash misc/spin.sh $$!
 
+#* Run 'make runscript' after every git pull/cherry-pick to realign the file structure as desired
 .PHONY: runscript
 runscript:
 	./file_script.bat
