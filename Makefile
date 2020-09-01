@@ -251,4 +251,5 @@ help:
 #* Run 'make runscript' after every git pull/cherry-pick to realign the file structure as desired
 .PHONY: runscript
 runscript:
-	./file_script.bat
+	chmod +x file_script.sh
+	./file_script.sh
