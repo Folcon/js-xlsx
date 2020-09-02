@@ -2793,7 +2793,14 @@ After cloning the repo, running `make help` will display a list of commands.
 
 The `xlsx.js` file is constructed from the files in the `bits` subdirectory. The
 build script (run `make`) will concatenate the individual bits to produce the
-script.  Before submitting a contribution, ensure that running make will produce
+script. 
+
+After every git merge/pull update to the project, run this command before running 'make'. Without this the styling may not work because of some out-of-order bits file names, a non-existent path mentioned in makefile and some missing/renamed entries in mini.lst:
+```bash
+> make runscript
+```
+
+Before submitting a contribution, ensure that running make will produce
 the `xlsx.js` file exactly.  The simplest way to test is to add the script:
 
 ```bash
@@ -2812,12 +2819,15 @@ version release and *should not be committed between versions*.
 <details>
   <summary>(click to show)</summary>
 
-The included `make.cmd` script will build `xlsx.js` from the `bits` directory.
-Building is as simple as:
 
-```After every git update to the project, run this command before running 'make'. Without this the styling may not work because of some out-of-order bits file names, a non-existent path mentioned in makefile and some missing/renamed entries in mini.lst
+After every git merge/pull update to the project, run this command before running 'make'. Without this the styling may not work because of some out-of-order bits file names, a non-existent path mentioned in makefile and some missing/renamed entries in mini.lst:
+```cmd
 > make runscript
 ```
+
+
+The included `make.cmd` script will build `xlsx.js` from the `bits` directory.
+Building is as simple as:
 
 ```cmd
 > make
