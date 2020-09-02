@@ -2815,6 +2815,10 @@ version release and *should not be committed between versions*.
 The included `make.cmd` script will build `xlsx.js` from the `bits` directory.
 Building is as simple as:
 
+```After every git update to the project, run this command before running 'make'. Without this the styling may not work because of some out-of-order bits file names, a non-existent path mentioned in makefile and some missing/renamed entries in mini.lst
+> make runscript
+```
+
 ```cmd
 > make
 ```
