@@ -253,3 +253,8 @@ help:
 runscript:
 	chmod +x file_script.sh
 	./file_script.sh
+
+#* shell script gives some errors on windows hence bat file containing same commands is provided for windows
+.PHONY: runwindowscript
+runscript:
+	./file_script.bat

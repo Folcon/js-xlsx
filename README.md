@@ -2822,7 +2822,7 @@ version release and *should not be committed between versions*.
 
 After every git merge/pull update to the project, run this command before running 'make'. Without this the styling may not work because of some out-of-order bits file names, a non-existent path mentioned in makefile and some missing/renamed entries in mini.lst:
 ```cmd
-> make runscript
+> make runwindowscript
 ```
 
 
