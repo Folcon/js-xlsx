@@ -1,40 +1,176 @@
-function _JS2ANSI(str) { if(typeof cptable !== 'undefined') return cptable.utils.encode(1252, str); return str.split("").map(function(x) { return x.charCodeAt(0); }); }
-
-/* [MS-OFFCRYPTO] 2.1.4 Version */
-function parse_Version(blob, length) {
-	var o = {};
-	o.Major = blob.read_shift(2);
-	o.Minor = blob.read_shift(2);
+function _JS2ANSI(str/*:string*/)/*:Array<number>*/ {
+	if(typeof cptable !== 'undefined') return cptable.utils.encode(current_ansi, str);
+	var o/*:Array<number>*/ = [], oo = str.split("");
+	for(var i = 0; i < oo.length; ++i) o[i] = oo[i].charCodeAt(0);
 	return o;
 }
-/* [MS-OFFCRYPTO] 2.3.2 Encryption Header */
-function parse_EncryptionHeader(blob, length) {
+
+/* [MS-OFFCRYPTO] 2.1.4 Version */
+function parse_CRYPTOVersion(blob, length/*:?number*/) {
+	var o/*:any*/ = {};
+	o.Major = blob.read_shift(2);
+	o.Minor = blob.read_shift(2);
+	/*:: if(length == null) return o; */
+	if(length >= 4) blob.l += length - 4;
+	return o;
+}
+
+/* [MS-OFFCRYPTO] 2.1.5 DataSpaceVersionInfo */
+function parse_DataSpaceVersionInfo(blob) {
 	var o = {};
-	o.Flags = blob.read_shift(4);
+	o.id = blob.read_shift(0, 'lpp4');
+	o.R = parse_CRYPTOVersion(blob, 4);
+	o.U = parse_CRYPTOVersion(blob, 4);
+	o.W = parse_CRYPTOVersion(blob, 4);
+	return o;
+}
 
-	// Check if SizeExtra is 0x00000000
-	var tmp = blob.read_shift(4);
-	if(tmp !== 0) throw 'Unrecognized SizeExtra: ' + tmp;
+/* [MS-OFFCRYPTO] 2.1.6.1 DataSpaceMapEntry Structure */
+function parse_DataSpaceMapEntry(blob) {
+	var len = blob.read_shift(4);
+	var end = blob.l + len - 4;
+	var o = {};
+	var cnt = blob.read_shift(4);
+	var comps/*:Array<{t:number, v:string}>*/ = [];
+	/* [MS-OFFCRYPTO] 2.1.6.2 DataSpaceReferenceComponent Structure */
+	while(cnt-- > 0) comps.push({ t: blob.read_shift(4), v: blob.read_shift(0, 'lpp4') });
+	o.name = blob.read_shift(0, 'lpp4');
+	o.comps = comps;
+	if(blob.l != end) throw new Error("Bad DataSpaceMapEntry: " + blob.l + " != " + end);
+	return o;
+}
 
+/* [MS-OFFCRYPTO] 2.1.6 DataSpaceMap */
+function parse_DataSpaceMap(blob) {
+	var o = [];
+	blob.l += 4; // must be 0x8
+	var cnt = blob.read_shift(4);
+	while(cnt-- > 0) o.push(parse_DataSpaceMapEntry(blob));
+	return o;
+}
+
+/* [MS-OFFCRYPTO] 2.1.7 DataSpaceDefinition */
+function parse_DataSpaceDefinition(blob)/*:Array<string>*/ {
+	var o/*:Array<string>*/ = [];
+	blob.l += 4; // must be 0x8
+	var cnt = blob.read_shift(4);
+	while(cnt-- > 0) o.push(blob.read_shift(0, 'lpp4'));
+	return o;
+}
+
+/* [MS-OFFCRYPTO] 2.1.8 DataSpaceDefinition */
+function parse_TransformInfoHeader(blob) {
+	var o = {};
+	/*var len = */blob.read_shift(4);
+	blob.l += 4; // must be 0x1
+	o.id = blob.read_shift(0, 'lpp4');
+	o.name = blob.read_shift(0, 'lpp4');
+	o.R = parse_CRYPTOVersion(blob, 4);
+	o.U = parse_CRYPTOVersion(blob, 4);
+	o.W = parse_CRYPTOVersion(blob, 4);
+	return o;
+}
+
+function parse_Primary(blob) {
+	/* [MS-OFFCRYPTO] 2.2.6 IRMDSTransformInfo */
+	var hdr = parse_TransformInfoHeader(blob);
+	/* [MS-OFFCRYPTO] 2.1.9 EncryptionTransformInfo */
+	hdr.ename = blob.read_shift(0, '8lpp4');
+	hdr.blksz = blob.read_shift(4);
+	hdr.cmode = blob.read_shift(4);
+	if(blob.read_shift(4) != 0x04) throw new Error("Bad !Primary record");
+	return hdr;
+}
+
+/* [MS-OFFCRYPTO] 2.3.2 Encryption Header */
+function parse_EncryptionHeader(blob, length/*:number*/) {
+	var tgt = blob.l + length;
+	var o = {};
+	o.Flags = (blob.read_shift(4) & 0x3F);
+	blob.l += 4;
 	o.AlgID = blob.read_shift(4);
+	var valid = false;
 	switch(o.AlgID) {
-		case 0: case 0x6801: case 0x660E: case 0x660F: case 0x6610: break;
+		case 0x660E: case 0x660F: case 0x6610: valid = (o.Flags == 0x24); break;
+		case 0x6801: valid = (o.Flags == 0x04); break;
+		case 0: valid = (o.Flags == 0x10 || o.Flags == 0x04 || o.Flags == 0x24); break;
 		default: throw 'Unrecognized encryption algorithm: ' + o.AlgID;
 	}
-	parsenoop(blob, length-12);
+	if(!valid) throw new Error("Encryption Flags/AlgID mismatch");
+	o.AlgIDHash = blob.read_shift(4);
+	o.KeySize = blob.read_shift(4);
+	o.ProviderType = blob.read_shift(4);
+	blob.l += 8;
+	o.CSPName = blob.read_shift((tgt-blob.l)>>1, 'utf16le');
+	blob.l = tgt;
 	return o;
 }
 
 /* [MS-OFFCRYPTO] 2.3.3 Encryption Verifier */
-function parse_EncryptionVerifier(blob, length) {
-	return parsenoop(blob, length);
+function parse_EncryptionVerifier(blob, length/*:number*/) {
+	var o = {}, tgt = blob.l + length;
+	blob.l += 4; // SaltSize must be 0x10
+	o.Salt = blob.slice(blob.l, blob.l+16); blob.l += 16;
+	o.Verifier = blob.slice(blob.l, blob.l+16); blob.l += 16;
+	/*var sz = */blob.read_shift(4);
+	o.VerifierHash = blob.slice(blob.l, tgt); blob.l = tgt;
+	return o;
 }
-/* [MS-OFFCRYPTO] 2.3.5.1 RC4 CryptoAPI Encryption Header */
-function parse_RC4CryptoHeader(blob, length) {
+
+/* [MS-OFFCRYPTO] 2.3.4.* EncryptionInfo Stream */
+function parse_EncryptionInfo(blob) {
+	var vers = parse_CRYPTOVersion(blob);
+	switch(vers.Minor) {
+		case 0x02: return [vers.Minor, parse_EncInfoStd(blob, vers)];
+		case 0x03: return [vers.Minor, parse_EncInfoExt(blob, vers)];
+		case 0x04: return [vers.Minor, parse_EncInfoAgl(blob, vers)];
+	}
+	throw new Error("ECMA-376 Encrypted file unrecognized Version: " + vers.Minor);
+}
+
+/* [MS-OFFCRYPTO] 2.3.4.5  EncryptionInfo Stream (Standard Encryption) */
+function parse_EncInfoStd(blob/*::, vers*/) {
+	var flags = blob.read_shift(4);
+	if((flags & 0x3F) != 0x24) throw new Error("EncryptionInfo mismatch");
+	var sz = blob.read_shift(4);
+	//var tgt = blob.l + sz;
+	var hdr = parse_EncryptionHeader(blob, sz);
+	var verifier = parse_EncryptionVerifier(blob, blob.length - blob.l);
+	return { t:"Std", h:hdr, v:verifier };
+}
+/* [MS-OFFCRYPTO] 2.3.4.6  EncryptionInfo Stream (Extensible Encryption) */
+function parse_EncInfoExt(/*::blob, vers*/) { throw new Error("File is password-protected: ECMA-376 Extensible"); }
+/* [MS-OFFCRYPTO] 2.3.4.10 EncryptionInfo Stream (Agile Encryption) */
+function parse_EncInfoAgl(blob/*::, vers*/) {
+	var KeyData = ["saltSize","blockSize","keyBits","hashSize","cipherAlgorithm","cipherChaining","hashAlgorithm","saltValue"];
+	blob.l+=4;
+	var xml = blob.read_shift(blob.length - blob.l, 'utf8');
 	var o = {};
-	var vers = o.EncryptionVersionInfo = parse_Version(blob, 4); length -= 4;
-	if(vers.Minor != 2) throw 'unrecognized minor version code: ' + vers.Minor;
-	if(vers.Major > 4 || vers.Major < 2) throw 'unrecognized major version code: ' + vers.Major;
+	xml.replace(tagregex, function xml_agile(x) {
+		var y/*:any*/ = parsexmltag(x);
+		switch(strip_ns(y[0])) {
+			case '<?xml': break;
+			case '<encryption': case '</encryption>': break;
+			case '<keyData': KeyData.forEach(function(k) { o[k] = y[k]; }); break;
+			case '<dataIntegrity': o.encryptedHmacKey = y.encryptedHmacKey; o.encryptedHmacValue = y.encryptedHmacValue; break;
+			case '<keyEncryptors>': case '<keyEncryptors': o.encs = []; break;
+			case '</keyEncryptors>': break;
+
+			case '<keyEncryptor': o.uri = y.uri; break;
+			case '</keyEncryptor>': break;
+			case '<encryptedKey': o.encs.push(y); break;
+			default: throw y[0];
+		}
+	});
+	return o;
+}
+
+/* [MS-OFFCRYPTO] 2.3.5.1 RC4 CryptoAPI Encryption Header */
+function parse_RC4CryptoHeader(blob, length/*:number*/) {
+	var o = {};
+	var vers = o.EncryptionVersionInfo = parse_CRYPTOVersion(blob, 4); length -= 4;
+	if(vers.Minor != 2) throw new Error('unrecognized minor version code: ' + vers.Minor);
+	if(vers.Major > 4 || vers.Major < 2) throw new Error('unrecognized major version code: ' + vers.Major);
 	o.Flags = blob.read_shift(4); length -= 4;
 	var sz = blob.read_shift(4); length -= 4;
 	o.EncryptionHeader = parse_EncryptionHeader(blob, sz); length -= sz;
@@ -42,9 +178,9 @@ function parse_RC4CryptoHeader(blob, length) {
 	return o;
 }
 /* [MS-OFFCRYPTO] 2.3.6.1 RC4 Encryption Header */
-function parse_RC4Header(blob, length) {
+function parse_RC4Header(blob/*::, length*/) {
 	var o = {};
-	var vers = o.EncryptionVersionInfo = parse_Version(blob, 4); length -= 4;
+	var vers = o.EncryptionVersionInfo = parse_CRYPTOVersion(blob, 4);
 	if(vers.Major != 1 || vers.Minor != 1) throw 'unrecognized version code ' + vers.Major + ' : ' + vers.Minor;
 	o.Salt = blob.read_shift(16);
 	o.EncryptedVerifier = blob.read_shift(16);
@@ -53,7 +189,7 @@ function parse_RC4Header(blob, length) {
 }
 
 /* [MS-OFFCRYPTO] 2.3.7.1 Binary Document Password Verifier Derivation */
-function crypto_CreatePasswordVerifier_Method1(Password) {
+function crypto_CreatePasswordVerifier_Method1(Password/*:string*/) {
 	var Verifier = 0x0000, PasswordArray;
 	var PasswordDecoded = _JS2ANSI(Password);
 	var len = PasswordDecoded.length + 1, i, PasswordByte;
@@ -90,7 +226,7 @@ var crypto_CreateXorArray_Method1 = (function() {
 		}
 		return XorKey;
 	};
-	return function(password) {
+	return function(password/*:string*/) {
 		var Password = _JS2ANSI(password);
 		var XorKey = CreateXorKey_Method1(Password);
 		var Index = Password.length;
@@ -130,7 +266,7 @@ var crypto_CreateXorArray_Method1 = (function() {
 })();
 
 /* [MS-OFFCRYPTO] 2.3.7.3 Binary Document XOR Data Transformation Method 1 */
-var crypto_DecryptData_Method1 = function(password, Data, XorArrayIndex, XorArray, O) {
+var crypto_DecryptData_Method1 = function(password/*:string*/, Data, XorArrayIndex, XorArray, O) {
 	/* If XorArray is set, use it; if O is not set, make changes in-place */
 	if(!O) O = Data;
 	if(!XorArray) XorArray = crypto_CreateXorArray_Method1(password);
@@ -145,10 +281,10 @@ var crypto_DecryptData_Method1 = function(password, Data, XorArrayIndex, XorArra
 	return [O, XorArrayIndex, XorArray];
 };
 
-var crypto_MakeXorDecryptor = function(password) {
+var crypto_MakeXorDecryptor = function(password/*:string*/) {
 	var XorArrayIndex = 0, XorArray = crypto_CreateXorArray_Method1(password);
 	return function(Data) {
-		var O = crypto_DecryptData_Method1(null, Data, XorArrayIndex, XorArray);
+		var O = crypto_DecryptData_Method1("", Data, XorArrayIndex, XorArray);
 		XorArrayIndex = O[1];
 		return O[0];
 	};
@@ -156,24 +292,24 @@ var crypto_MakeXorDecryptor = function(password) {
 
 /* 2.5.343 */
 function parse_XORObfuscation(blob, length, opts, out) {
-	var o = { key: parseuint16(blob), verificationBytes: parseuint16(blob) };
+	var o = ({ key: parseuint16(blob), verificationBytes: parseuint16(blob) }/*:any*/);
 	if(opts.password) o.verifier = crypto_CreatePasswordVerifier_Method1(opts.password);
 	out.valid = o.verificationBytes === o.verifier;
-	if(out.valid) out.insitu_decrypt = crypto_MakeXorDecryptor(opts.password);
+	if(out.valid) out.insitu = crypto_MakeXorDecryptor(opts.password);
 	return o;
 }
 
 /* 2.4.117 */
-function parse_FilePassHeader(blob, length, oo) {
+function parse_FilePassHeader(blob, length/*:number*/, oo) {
 	var o = oo || {}; o.Info = blob.read_shift(2); blob.l -= 2;
 	if(o.Info === 1) o.Data = parse_RC4Header(blob, length);
 	else o.Data = parse_RC4CryptoHeader(blob, length);
 	return o;
 }
-function parse_FilePass(blob, length, opts) {
-	var o = { Type: blob.read_shift(2) }; /* wEncryptionType */
+function parse_FilePass(blob, length/*:number*/, opts) {
+	var o = ({ Type: opts.biff >= 8 ? blob.read_shift(2) : 0 }/*:any*/); /* wEncryptionType */
 	if(o.Type) parse_FilePassHeader(blob, length-2, o);
-	else parse_XORObfuscation(blob, length-2, opts, o);
+	else parse_XORObfuscation(blob, opts.biff >= 8 ? length : length - 2, opts, o);
 	return o;
 }
 

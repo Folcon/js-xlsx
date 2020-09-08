@@ -1,4 +1,4 @@
-function fix_opts_func(defaults) {
+function fix_opts_func(defaults/*:Array<Array<any> >*/)/*:{(o:any):void}*/ {
 	return function fix_opts(opts) {
 		for(var i = 0; i != defaults.length; ++i) {
 			var d = defaults[i];
@@ -13,6 +13,7 @@ var fix_read_opts = fix_opts_func([
 	['cellHTML', true], /* emit html string as .h */
 	['cellFormula', true], /* emit formulae as .f */
 	['cellStyles', false], /* emits style/theme as .s */
+	['cellText', true], /* emit formatted text as .w */
 	['cellDates', false], /* emit date cells with type `d` */
 
 	['sheetStubs', false], /* emit empty cells */
@@ -35,6 +36,8 @@ var fix_write_opts = fix_opts_func([
 	['bookSST', false], /* Generate Shared String Table */
 
 	['bookType', 'xlsx'], /* Type of workbook (xlsx/m/b) */
+
+	['compression', false], /* Use file compression */
 
 	['WTF', false] /* WTF mode (throws errors) */
 ]);

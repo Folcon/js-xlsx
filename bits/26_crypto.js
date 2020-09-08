@@ -1,9 +1,10 @@
 var OFFCRYPTO = {};
+
 var make_offcrypto = function(O, _crypto) {
 	var crypto;
 	if(typeof _crypto !== 'undefined') crypto = _crypto;
 	else if(typeof require !== 'undefined') {
-		try { crypto = require('cry'+'pto'); }
+		try { crypto = require('crypto'); }
 		catch(e) { crypto = null; }
 	}
 
@@ -15,7 +16,8 @@ var make_offcrypto = function(O, _crypto) {
 			j = (j + S[i] + (key[i%key.length]).charCodeAt(0))&255;
 			t = S[i]; S[i] = S[j]; S[j] = t;
 		}
-		i = j = 0; out = Buffer(data.length);
+		// $FlowIgnore
+		i = j = 0; var out = new_raw_buf(data.length);
 		for(c = 0; c != data.length; ++c) {
 			i = (i + 1)&255;
 			j = (j + S[i])%256;
@@ -25,11 +27,12 @@ var make_offcrypto = function(O, _crypto) {
 		return out;
 	};
 
-	if(crypto) {
-		O.md5 = function(hex) { return crypto.createHash('md5').update(hex).digest('hex'); };
-	} else {
-		O.md5 = function(hex) { throw "unimplemented"; };
-	}
+	O.md5 = function(hex) {
+		if(!crypto) throw new Error("Unsupported crypto");
+		return crypto.createHash('md5').update(hex).digest('hex');
+	};
 };
+/*:: declare var crypto:any; */
+/*global crypto:true */
 make_offcrypto(OFFCRYPTO, typeof crypto !== "undefined" ? crypto : undefined);
 
