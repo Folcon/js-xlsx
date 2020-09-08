@@ -256,5 +256,5 @@ runscript:
 
 #* shell script gives some errors on windows hence bat file containing same commands is provided for windows
 .PHONY: runwindowscript
-runscript:
+runwindowscript:
 	./file_script.bat
